@@ -25,13 +25,36 @@ function renderVideo(item) {
   </div>`;
 }
 
+function segmentPromptsFrom(response) {
+  const segments = Array.isArray(response.videoSegments) ? response.videoSegments : [];
+  if (segments.length) return segments.map((segment) => segment.input?.prompt || "").filter(Boolean);
+  const storyboard = Array.isArray(response.plan?.storyboard) ? response.plan.storyboard : [];
+  return storyboard.map((shot, index) => `多个镜头。${shot.scene || ""} ${shot.camera || ""} ${shot.emotion || ""}。镜头稳定，动作自然，柔和电影光线。无文字。`);
+}
+
+function renderPromptEditor(response) {
+  const imagePrompt = response.imageInput?.prompt || response.plan?.imagePrompt || "";
+  const videoPrompt = response.plan?.videoPrompt || "";
+  const segmentPrompts = segmentPromptsFrom(response);
+  const negativePrompt = response.plan?.negativePrompt || "";
+  return `
+    <details class="prompt-editor" open>
+      <summary>提示词，可编辑后继续处理</summary>
+      <label>图片提示词<textarea data-xhs-field="imagePrompt" rows="4">${escapeHtml(imagePrompt)}</textarea></label>
+      <label>视频总提示词<textarea data-xhs-field="videoPrompt" rows="4">${escapeHtml(videoPrompt)}</textarea></label>
+      <label>分段视频提示词 JSON<textarea data-xhs-field="segmentPromptsJson" rows="7">${escapeHtml(JSON.stringify(segmentPrompts, null, 2))}</textarea></label>
+      <label>负面提示词<textarea data-xhs-field="negativePrompt" rows="3">${escapeHtml(negativePrompt)}</textarea></label>
+    </details>
+  `;
+}
+
 function renderResumeAction(run) {
   if (run.status !== "failed" || !run.kind?.startsWith("xhs")) return "";
   return `
     <div class="resume-box">
       <div>
         <strong>任务中断</strong>
-        <span>可以从已保存的 checkpoint 继续处理，不会重做已完成步骤。</span>
+        <span>可以从已保存的 checkpoint 继续处理；如果你编辑了提示词，会带着新提示词继续。</span>
       </div>
       <button type="button" class="resume-button" data-resume-kind="xhs" data-request-id="${escapeHtml(run.requestId)}">继续处理</button>
     </div>
@@ -59,6 +82,7 @@ function renderXhs(run, response) {
           </article>
         `).join("")}
       </div>
+      ${renderPromptEditor(response)}
       ${response.ossImages?.length ? renderImages(response.ossImages, "xhs generated image") : ""}
       ${response.ossVideo?.url ? renderVideo(response.ossVideo) : ""}
     </div>
@@ -79,6 +103,17 @@ export function renderAnswer(run) {
   return "没有可预览内容。";
 }
 
+function editedPromptPayload() {
+  const payload = {};
+  document.querySelectorAll("[data-xhs-field]").forEach((field) => {
+    const value = field.value.trim();
+    if (!value) return;
+    if (field.dataset.xhsField === "segmentPromptsJson") payload.segmentPrompts = JSON.parse(value);
+    else payload[field.dataset.xhsField] = value;
+  });
+  return payload;
+}
+
 async function resumeXhsTask(button) {
   const requestId = button.dataset.requestId;
   button.disabled = true;
@@ -87,7 +122,7 @@ async function resumeXhsTask(button) {
     import("./apiClient.js"),
     import("./polling.js"),
   ]);
-  await api(`/api/xhs/requests/${requestId}/resume`, { method: "POST", body: JSON.stringify({}) });
+  await api(`/api/xhs/requests/${requestId}/resume`, { method: "POST", body: JSON.stringify(editedPromptPayload()) });
   trackTask("xhs", requestId);
   await poll("xhs", requestId);
 }

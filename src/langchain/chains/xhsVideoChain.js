@@ -50,6 +50,19 @@ function segmentPrompt(plan, shot, index) {
   ].filter(Boolean).join(", "));
 }
 
+function customSegmentPrompt(input, index) {
+  if (Array.isArray(input.segmentPrompts)) return String(input.segmentPrompts[index] || "").trim();
+  return "";
+}
+
+function imagePromptFor(input, plan) {
+  return hardenNoTextPrompt(input.imagePrompt || plan.imagePrompt);
+}
+
+function videoPromptFor(input, plan, shot, index) {
+  return hardenNoTextPrompt(customSegmentPrompt(input, index) || input.videoPrompt || segmentPrompt(plan, shot, index));
+}
+
 async function withRetry(label, task, retries = 2) {
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -230,7 +243,7 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
 
   const imageInput = progress.imageInput || {
     model: input.imageModel,
-    prompt: hardenNoTextPrompt(plan.imagePrompt),
+    prompt: imagePromptFor(input, plan),
     size: input.imageSize || "768x1024",
     responseFormat: "url",
   };
@@ -279,9 +292,17 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
     if (existingSegment) {
       if (!existingSegment.ossVideo?.url) {
         const videoInput = {
-          ...(existingSegment.input || {}),
+          model: input.videoModel || existingSegment.input?.model,
+          prompt: videoPromptFor(input, plan, shot, index),
           image: currentImage.url,
           imageObjectKey: currentImage.objectKey,
+          width: Number(input.width || existingSegment.input?.width || 768),
+          height: Number(input.height || existingSegment.input?.height || 1152),
+          numFrames: segmentFrames,
+          frameRate,
+          numInferenceSteps: input.numInferenceSteps ? Number(input.numInferenceSteps) : existingSegment.input?.numInferenceSteps,
+          seed: input.seed ? Number(input.seed) + index : existingSegment.input?.seed,
+          negativePrompt: input.negativePrompt || plan.negativePrompt,
         };
         await runVideoSegment({
           index,
@@ -313,7 +334,7 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
     }
     const videoInput = {
       model: input.videoModel,
-      prompt: segmentPrompt(plan, shot, index),
+      prompt: videoPromptFor(input, plan, shot, index),
       image: currentImage.url,
       imageObjectKey: currentImage.objectKey,
       width: Number(input.width || 768),
@@ -322,7 +343,7 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
       frameRate,
       numInferenceSteps: input.numInferenceSteps ? Number(input.numInferenceSteps) : undefined,
       seed: input.seed ? Number(input.seed) + index : undefined,
-      negativePrompt: plan.negativePrompt,
+      negativePrompt: input.negativePrompt || plan.negativePrompt,
     };
     const segment = await runVideoSegment({
       index,

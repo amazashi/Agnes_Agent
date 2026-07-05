@@ -116,6 +116,10 @@ label {
   display: block;
 }
 
+.legacy-form {
+  display: none !important;
+}
+
 .template-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -337,6 +341,22 @@ button {
 
 .storyboard-list strong {
   color: #8f6a9e;
+}
+
+.prompt-editor {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow:
+    inset 5px 6px 12px rgba(111, 92, 130, 0.1),
+    inset -6px -7px 12px rgba(255, 255, 255, 0.72);
+}
+
+.prompt-editor summary {
+  cursor: pointer;
+  color: #5c6677;
+  font-weight: 900;
 }
 
 pre {

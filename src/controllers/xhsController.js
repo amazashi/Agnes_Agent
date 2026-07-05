@@ -14,9 +14,10 @@ export function getXhsRequest(_req, res, requestId) {
   return sendJson(res, 200, { ok: true, request: run });
 }
 
-export function resumeXhsRequest(_req, res, requestId) {
+export async function resumeXhsRequest(req, res, requestId) {
   try {
-    resumeXhsRun(requestId);
+    const body = await readJson(req).catch(() => ({}));
+    resumeXhsRun(requestId, body);
     return sendJson(res, 202, { ok: true, requestId, status: "running", statusUrl: `/api/xhs/requests/${requestId}` });
   } catch (error) {
     return sendJson(res, 400, { ok: false, error: error.message || String(error) });

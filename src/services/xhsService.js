@@ -9,12 +9,13 @@ export function startXhsRun(input) {
   return requestId;
 }
 
-export function resumeXhsRun(requestId) {
+export function resumeXhsRun(requestId, overrides = {}) {
   const run = getRun(requestId);
   if (!run) throw new Error("request not found");
   if (run.kind !== "xhs_video_chain") throw new Error("request is not an XHS video chain");
   if (run.status === "succeeded") throw new Error("request already succeeded");
-  resumeAsyncTask(requestId, () => invokeXhsVideoChain(run.request, {
+  const request = { ...run.request, ...overrides };
+  resumeAsyncTask(requestId, () => invokeXhsVideoChain(request, {
     checkpoint: run.response,
     onProgress: (progress) => markRunProgress(requestId, progress),
   }));

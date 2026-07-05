@@ -31,6 +31,8 @@ export function formJson(form) {
   delete body.imageUrlsJson;
   if (body.keyframesJson) body.keyframes = JSON.parse(body.keyframesJson);
   delete body.keyframesJson;
+  if (body.segmentPromptsJson) body.segmentPrompts = JSON.parse(body.segmentPromptsJson);
+  delete body.segmentPromptsJson;
   if (body.imageDataUrlsJson) body.imageDataUrls = JSON.parse(body.imageDataUrlsJson);
   delete body.imageDataUrlsJson;
   if (body.extraBodyJson) body.extraBody = JSON.parse(body.extraBodyJson);

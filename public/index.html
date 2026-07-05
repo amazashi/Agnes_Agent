@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LangChain JS SQLite Workbench</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel composer">
+        <p class="eyebrow">LangChain.js</p>
+        <h1>SQLite Chain Workbench</h1>
+        <nav class="tabs">
+          <button class="tab active" type="button" data-tab="chat">Chat</button>
+          <button class="tab" type="button" data-tab="image">Image</button>
+          <button class="tab" type="button" data-tab="video">Video</button>
+        </nav>
+
+        <form id="chat-form" class="task-form active" data-panel="chat">
+          <label>&#27169;&#22411;<input name="model" placeholder="agnes-2.0-flash" /></label>
+          <label>System Prompt<textarea name="systemPrompt" rows="3">You are a helpful assistant.</textarea></label>
+          <div class="template-grid">
+            <label>Temperature<input name="temperature" placeholder="0.2" /></label>
+            <label>Top P<input name="topP" placeholder="0.9" /></label>
+            <label>Max Tokens<input name="maxTokens" placeholder="1024" /></label>
+            <label>Stream
+              <select name="stream">
+                <option value="">false</option>
+                <option value="true">true</option>
+              </select>
+            </label>
+          </div>
+          <div class="upload-zone" data-upload-target="chat-images">
+            <input class="file-input" type="file" accept="image/*" multiple />
+            <strong>拖拽或点击上传图片</strong>
+            <span>上传到 OSS 后用于图像理解</span>
+            <div class="upload-list"></div>
+          </div>
+          <input type="hidden" name="imageUrl" data-upload-field="chat-images-single" />
+          <input type="hidden" name="imageUrlsJson" data-upload-field="chat-images" />
+          <div class="template-grid">
+            <label>Thinking
+              <select name="enableThinking">
+                <option value="">off</option>
+                <option value="true">on</option>
+              </select>
+            </label>
+            <label>Thinking Budget<input name="thinkingBudgetTokens" placeholder="2048" /></label>
+          </div>
+          <label>Tools JSON<textarea name="toolsJson" rows="4" placeholder='[{"type":"function","function":{"name":"get_weather","description":"Get weather","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"]}}}]'></textarea></label>
+          <div class="template-grid">
+            <label>Built-in Tools
+              <select name="enableBuiltinTools">
+                <option value="">off</option>
+                <option value="true">on</option>
+              </select>
+            </label>
+            <label>Execute Tools
+              <select name="executeTools">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+          </div>
+          <label>Tool Choice<input name="toolChoice" placeholder="auto" /></label>
+          <label>Question<textarea name="question" rows="7" required>&#29992;&#19968;&#21477;&#35805;&#35299;&#37322; LangChain &#30340; Runnable &#26159;&#20160;&#20040;&#12290;</textarea></label>
+          <button type="submit">&#36816;&#34892;&#35821;&#35328; Chain</button>
+        </form>
+
+        <form id="image-form" class="task-form" data-panel="image">
+          <label>&#27169;&#22411;
+            <select name="model">
+              <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
+              <option value="agnes-image-2.0-flash">agnes-image-2.0-flash</option>
+            </select>
+          </label>
+          <label>&#23610;&#23544;<input name="size" placeholder="1024x1024" /></label>
+          <div class="template-grid">
+            <label>Response Format
+              <select name="responseFormat">
+                <option value="url">url</option>
+                <option value="b64_json">b64_json</option>
+              </select>
+            </label>
+            <label>Return Base64
+              <select name="returnBase64">
+                <option value="">false</option>
+                <option value="true">true</option>
+              </select>
+            </label>
+          </div>
+          <div class="upload-zone" data-upload-target="image-inputs">
+            <input class="file-input" type="file" accept="image/*" multiple />
+            <strong>拖拽或点击上传参考图</strong>
+            <span>文生图可不上传；图生图/多图合成会自动使用 OSS 地址</span>
+            <div class="upload-list"></div>
+          </div>
+          <input type="hidden" name="imageUrl" data-upload-field="image-inputs-single" />
+          <input type="hidden" name="imageUrlsJson" data-upload-field="image-inputs" />
+          <label>Extra Body JSON<textarea name="extraBodyJson" rows="3" placeholder='{"response_format":"url"}'></textarea></label>
+          <label>Prompt<textarea name="prompt" rows="8" required>&#19968;&#24352;&#24178;&#20928;&#26126;&#20142;&#30340;&#20135;&#21697;&#28023;&#25253;&#65292;&#20027;&#39064;&#26159; LangChain &#24037;&#20316;&#27969;&#12290;</textarea></label>
+          <button type="submit">&#36816;&#34892;&#22270;&#29255; Runnable</button>
+        </form>
+
+        <form id="video-form" class="task-form" data-panel="video">
+          <label>&#27169;&#22411;<input name="model" placeholder="agnes-video-v2.0" /></label>
+          <div class="template-grid">
+            <label>Width<input name="width" placeholder="768" /></label>
+            <label>Height<input name="height" placeholder="1152" /></label>
+            <label>Num Frames<input name="numFrames" placeholder="121" /></label>
+            <label>Frame Rate<input name="frameRate" placeholder="24" /></label>
+            <label>Mode<input name="mode" placeholder="ti2vid 或 keyframes" /></label>
+            <label>Extra Mode<input name="extraMode" placeholder="keyframes" /></label>
+            <label>Seed<input name="seed" placeholder="12345" /></label>
+            <label>Inference Steps<input name="numInferenceSteps" placeholder="30" /></label>
+          </div>
+          <div class="upload-zone" data-upload-target="video-images">
+            <input class="file-input" type="file" accept="image/*" multiple />
+            <strong>拖拽或点击上传视频参考图</strong>
+            <span>单张用于图生视频，多张用于多图/keyframes</span>
+            <div class="upload-list"></div>
+          </div>
+          <input type="hidden" name="image" data-upload-field="video-images-single" />
+          <input type="hidden" name="imageUrlsJson" data-upload-field="video-images" />
+          <input type="hidden" name="keyframesJson" data-upload-field="video-images-keyframes" />
+          <label>Negative Prompt<textarea name="negativePrompt" rows="3" placeholder="blur, low quality, distortion"></textarea></label>
+          <label>Extra Body JSON<textarea name="extraBodyJson" rows="3" placeholder='{"mode":"keyframes"}'></textarea></label>
+          <label>&#22330;&#26223;<input name="scene" value="clean modern LangChain workflow studio" /></label>
+          <label>&#20027;&#20307;<input name="subject" value="a soft clay-style AI workflow dashboard" /></label>
+          <label>&#21160;&#20316;<input name="action" value="nodes connect and animate smoothly" /></label>
+          <label>&#38236;&#22836;<input name="camera" value="slow cinematic push-in" /></label>
+          <label>&#20809;&#32447;/&#27675;&#22260;<input name="lighting" value="bright soft studio lighting" /></label>
+          <button type="submit">&#36816;&#34892;&#35270;&#39057; Runnable</button>
+        </form>
+      </section>
+
+      <section class="panel result">
+        <div class="head">
+          <div>
+            <p class="eyebrow">Result</p>
+            <h2 id="status">&#31561;&#24453;&#25552;&#20132;</h2>
+          </div>
+          <button id="refresh" type="button">&#21047;&#26032;&#26085;&#24535;</button>
+        </div>
+        <article id="answer" class="answer">&#25552;&#20132;&#21518;&#36825;&#37324;&#20250;&#39044;&#35272;&#25991;&#23383;&#12289;&#22270;&#29255;&#25110;&#35270;&#39057;&#32467;&#26524;&#12290;</article>
+        <pre id="raw"></pre>
+      </section>
+
+      <aside class="panel monitor">
+        <p class="eyebrow">SQLite Runs</p>
+        <div id="runs" class="runs"></div>
+      </aside>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

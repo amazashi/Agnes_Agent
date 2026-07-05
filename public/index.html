@@ -19,7 +19,7 @@
         </nav>
 
         <form id="chat-form" class="task-form active" data-panel="chat">
-          <label>&#27169;&#22411;<input name="model" placeholder="agnes-2.0-flash" /></label>
+          <label>Model<input name="model" placeholder="agnes-2.0-flash" /></label>
           <label>System Prompt<textarea name="systemPrompt" rows="3">You are a helpful assistant.</textarea></label>
           <div class="template-grid">
             <label>Temperature<input name="temperature" placeholder="0.2" /></label>
@@ -34,8 +34,8 @@
           </div>
           <div class="upload-zone" data-upload-target="chat-images">
             <input class="file-input" type="file" accept="image/*" multiple />
-            <strong>拖拽或点击上传图片</strong>
-            <span>上传到 OSS 后用于图像理解</span>
+            <strong>Drag images here or click to upload</strong>
+            <span>Uploaded to OSS for image understanding.</span>
             <div class="upload-list"></div>
           </div>
           <input type="hidden" name="imageUrl" data-upload-field="chat-images-single" />
@@ -65,18 +65,18 @@
             </label>
           </div>
           <label>Tool Choice<input name="toolChoice" placeholder="auto" /></label>
-          <label>Question<textarea name="question" rows="7" required>&#29992;&#19968;&#21477;&#35805;&#35299;&#37322; LangChain &#30340; Runnable &#26159;&#20160;&#20040;&#12290;</textarea></label>
-          <button type="submit">&#36816;&#34892;&#35821;&#35328; Chain</button>
+          <label>Question<textarea name="question" rows="7" required>用一句话解释 LangChain 的 Runnable 是什么。</textarea></label>
+          <button type="submit">Run Chat Chain</button>
         </form>
 
         <form id="image-form" class="task-form" data-panel="image">
-          <label>&#27169;&#22411;
+          <label>Model
             <select name="model">
               <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
               <option value="agnes-image-2.0-flash">agnes-image-2.0-flash</option>
             </select>
           </label>
-          <label>&#23610;&#23544;<input name="size" placeholder="1024x1024" /></label>
+          <label>Size<input name="size" placeholder="1024x1024" /></label>
           <div class="template-grid">
             <label>Response Format
               <select name="responseFormat">
@@ -93,33 +93,33 @@
           </div>
           <div class="upload-zone" data-upload-target="image-inputs">
             <input class="file-input" type="file" accept="image/*" multiple />
-            <strong>拖拽或点击上传参考图</strong>
-            <span>文生图可不上传；图生图/多图合成会自动使用 OSS 地址</span>
+            <strong>Drag reference images here or click to upload</strong>
+            <span>Text-to-image can leave this empty. Img2img and multi-image composition use OSS URLs automatically.</span>
             <div class="upload-list"></div>
           </div>
           <input type="hidden" name="imageUrl" data-upload-field="image-inputs-single" />
           <input type="hidden" name="imageUrlsJson" data-upload-field="image-inputs" />
           <label>Extra Body JSON<textarea name="extraBodyJson" rows="3" placeholder='{"response_format":"url"}'></textarea></label>
-          <label>Prompt<textarea name="prompt" rows="8" required>&#19968;&#24352;&#24178;&#20928;&#26126;&#20142;&#30340;&#20135;&#21697;&#28023;&#25253;&#65292;&#20027;&#39064;&#26159; LangChain &#24037;&#20316;&#27969;&#12290;</textarea></label>
-          <button type="submit">&#36816;&#34892;&#22270;&#29255; Runnable</button>
+          <label>Prompt<textarea name="prompt" rows="8" required>一张干净明亮的产品海报，主题是 LangChain 工作流。</textarea></label>
+          <button type="submit">Run Image Runnable</button>
         </form>
 
         <form id="video-form" class="task-form" data-panel="video">
-          <label>&#27169;&#22411;<input name="model" placeholder="agnes-video-v2.0" /></label>
+          <label>Model<input name="model" placeholder="agnes-video-v2.0" /></label>
           <div class="template-grid">
             <label>Width<input name="width" placeholder="768" /></label>
             <label>Height<input name="height" placeholder="1152" /></label>
             <label>Num Frames<input name="numFrames" placeholder="121" /></label>
             <label>Frame Rate<input name="frameRate" placeholder="24" /></label>
-            <label>Mode<input name="mode" placeholder="ti2vid 或 keyframes" /></label>
+            <label>Mode<input name="mode" placeholder="ti2vid or keyframes" /></label>
             <label>Extra Mode<input name="extraMode" placeholder="keyframes" /></label>
             <label>Seed<input name="seed" placeholder="12345" /></label>
             <label>Inference Steps<input name="numInferenceSteps" placeholder="30" /></label>
           </div>
           <div class="upload-zone" data-upload-target="video-images">
             <input class="file-input" type="file" accept="image/*" multiple />
-            <strong>拖拽或点击上传视频参考图</strong>
-            <span>单张用于图生视频，多张用于多图/keyframes</span>
+            <strong>Drag video reference images here or click to upload</strong>
+            <span>One image is used for image-to-video. Multiple images are used for keyframes.</span>
             <div class="upload-list"></div>
           </div>
           <input type="hidden" name="image" data-upload-field="video-images-single" />
@@ -127,17 +127,17 @@
           <input type="hidden" name="keyframesJson" data-upload-field="video-images-keyframes" />
           <label>Negative Prompt<textarea name="negativePrompt" rows="3" placeholder="blur, low quality, distortion"></textarea></label>
           <label>Extra Body JSON<textarea name="extraBodyJson" rows="3" placeholder='{"mode":"keyframes"}'></textarea></label>
-          <label>&#22330;&#26223;<input name="scene" value="clean modern LangChain workflow studio" /></label>
-          <label>&#20027;&#20307;<input name="subject" value="a soft clay-style AI workflow dashboard" /></label>
-          <label>&#21160;&#20316;<input name="action" value="nodes connect and animate smoothly" /></label>
-          <label>&#38236;&#22836;<input name="camera" value="slow cinematic push-in" /></label>
-          <label>&#20809;&#32447;/&#27675;&#22260;<input name="lighting" value="bright soft studio lighting" /></label>
-          <button type="submit">&#36816;&#34892;&#35270;&#39057; Runnable</button>
+          <label>Scene<input name="scene" value="clean modern LangChain workflow studio" /></label>
+          <label>Subject<input name="subject" value="a soft clay-style AI workflow dashboard" /></label>
+          <label>Action<input name="action" value="nodes connect and animate smoothly" /></label>
+          <label>Camera<input name="camera" value="slow cinematic push-in" /></label>
+          <label>Light / Mood<input name="lighting" value="bright soft studio lighting" /></label>
+          <button type="submit">Run Video Runnable</button>
         </form>
 
         <form id="xhs-form" class="task-form" data-panel="xhs">
-          <label>热词 / 关键词<input name="keyword" placeholder="例如：AI副业、普通人变现、情绪价值；留空则由 AI 推荐" /></label>
-          <label>方向提示<textarea name="topicHint" rows="3" placeholder="可选：目标人群、账号领域、想吸引的人群">AI工具，普通人副业，效率提升，小红书涨粉</textarea></label>
+          <label>Keyword / Hotword<input name="keyword" placeholder="AI副业、普通人变现、情绪价值；留空则让 AI 推荐" /></label>
+          <label>Topic Hint<textarea name="topicHint" rows="3" placeholder="目标人群、账号领域、想吸引的人群">AI工具，普通人副业，效率提升，小红书涨粉</textarea></label>
           <div class="template-grid">
             <label>Chat Model<input name="model" placeholder="agnes-2.0-flash" /></label>
             <label>Image Model
@@ -148,41 +148,20 @@
             </label>
             <label>Video Model<input name="videoModel" placeholder="agnes-video-v2.0" /></label>
             <label>Image Size<input name="imageSize" placeholder="768x1024" /></label>
+            <label>Character Size<input name="characterImageSize" placeholder="768x1024" /></label>
             <label>Width<input name="width" placeholder="768" /></label>
             <label>Height<input name="height" placeholder="1152" /></label>
             <label>Segments<input name="segmentCount" placeholder="5" /></label>
             <label>Frames / Segment<input name="segmentFrames" placeholder="121" /></label>
-            <label>FPS<input name="frameRate" placeholder="20，可填 60" /></label>
+            <label>FPS<input name="frameRate" placeholder="20 or 60" /></label>
           </div>
-          <label>图片提示词<textarea name="imagePrompt" rows="4" placeholder="可选。留空则由文本模型生成。要求：画面不要出现文字。"></textarea></label>
-          <label>视频总提示词<textarea name="videoPrompt" rows="4" placeholder="可选。建议短句：多个镜头。主体动作。镜头运动。光线氛围。不要出现文字。"></textarea></label>
-          <label>分段视频提示词 JSON<textarea name="segmentPromptsJson" rows="5" placeholder='["多个镜头。创作者打开电脑，柔和光线，慢慢推近。无文字。","镜头转向发光的抽象灵感形状，平稳移动。无文字。"]'></textarea></label>
-          <label>负面提示词<textarea name="negativePrompt" rows="3" placeholder="text, captions, subtitles, letters, words, logo, watermark, sign, poster, label, ui text"></textarea></label>
-          <p class="form-note">默认 5 段，每段 121 帧、20fps，约 30.25 秒；如果要 60fps 接近 30 秒，可填 5 段、361 帧/段、60fps。每段会使用上一段最后一帧作为下一段第一帧。</p>
-          <button type="submit">生成小红书 30s 视频链路</button>
-        </form>
-
-        <form id="xhs-form-old" class="task-form legacy-form" data-panel="xhs-old">
-          <label>热词 / 关键词<input name="keyword" placeholder="例如：AI副业、普通人变现、情绪价值；留空则由 AI 推荐" /></label>
-          <label>方向提示<textarea name="topicHint" rows="3" placeholder="可选：目标人群、账号领域、想吸引的人群">AI工具，普通人副业，效率提升，小红书涨粉</textarea></label>
-          <div class="template-grid">
-            <label>Chat Model<input name="model" placeholder="agnes-2.0-flash" /></label>
-            <label>Image Model
-              <select name="imageModel">
-                <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
-                <option value="agnes-image-2.0-flash">agnes-image-2.0-flash</option>
-              </select>
-            </label>
-            <label>Video Model<input name="videoModel" placeholder="agnes-video-v2.0" /></label>
-            <label>Image Size<input name="imageSize" placeholder="768x1024" /></label>
-            <label>Width<input name="width" placeholder="768" /></label>
-            <label>Height<input name="height" placeholder="1152" /></label>
-            <label>Segments<input name="segmentCount" placeholder="5" /></label>
-            <label>Frames / Segment<input name="segmentFrames" placeholder="121" /></label>
-            <label>FPS<input name="frameRate" placeholder="20，可填 60" /></label>
-          </div>
-          <p class="form-note">默认 5 段，每段 121 帧、20fps，约 30.25 秒；如果要 60fps 接近 30 秒，可填 5 段、361 帧/段、60fps。每段会使用上一段最后一帧作为下一段第一帧。</p>
-          <button type="submit">生成小红书 30s 视频链路</button>
+          <label>Character Reference Prompt<textarea name="characterPrompt" rows="4" placeholder="可选。描述一个稳定人物：脸型、发型、服装、年龄、气质、简单道具。画面不要出现文字。"></textarea></label>
+          <label>Cover Image Prompt<textarea name="imagePrompt" rows="4" placeholder="可选。系统会自动用人物参考图做图生图，要求画面不要出现文字。"></textarea></label>
+          <label>Base Video Prompt<textarea name="videoPrompt" rows="4" placeholder="可选。建议短句：多个镜头、主体动作、镜头运动、光线氛围。不要出现文字。"></textarea></label>
+          <label>Segment Video Prompts JSON<textarea name="segmentPromptsJson" rows="5" placeholder='["Multiple shots. The creator opens a laptop. Slow push-in. Warm light. No text.","The same creator looks at soft idea shapes. Stable camera. No text."]'></textarea></label>
+          <label>Negative Prompt<textarea name="negativePrompt" rows="3" placeholder="text, captions, subtitles, letters, words, logo, watermark, sign, poster, label, ui text"></textarea></label>
+          <p class="form-note">默认 5 段，每段 121 帧 / 20fps，约 30.25 秒。若要 60fps 接近 30 秒，填 5 段、361 帧/段、60fps。每段会使用上一段最后一帧作为下一段第一帧。</p>
+          <button type="submit">Generate XHS 30s Video Chain</button>
         </form>
       </section>
 
@@ -190,11 +169,11 @@
         <div class="head">
           <div>
             <p class="eyebrow">Result</p>
-            <h2 id="status">&#31561;&#24453;&#25552;&#20132;</h2>
+            <h2 id="status">等待提交</h2>
           </div>
-          <button id="refresh" type="button">&#21047;&#26032;&#26085;&#24535;</button>
+          <button id="refresh" type="button">刷新日志</button>
         </div>
-        <article id="answer" class="answer">&#25552;&#20132;&#21518;&#36825;&#37324;&#20250;&#39044;&#35272;&#25991;&#23383;&#12289;&#22270;&#29255;&#25110;&#35270;&#39057;&#32467;&#26524;&#12290;</article>
+        <article id="answer" class="answer">提交后这里会预览文字、图片或视频结果。</article>
         <pre id="raw"></pre>
       </section>
 

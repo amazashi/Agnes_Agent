@@ -1,5 +1,11 @@
 function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  }[char]));
 }
 
 export function kindFromRun(run) {
@@ -9,41 +15,63 @@ export function kindFromRun(run) {
   return "chat";
 }
 
-function renderImages(items = [], alt = "generated image") {
-  return `<div class="media-grid">${items.map((item) => `
-    <figure>
-      <img src="${escapeHtml(item.url)}" alt="${escapeHtml(alt)}" />
-      <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.objectKey || "OSS image")}</a>
-    </figure>
-  `).join("")}</div>`;
+function renderImages(items = [], alt = "generated image", title = "Images") {
+  if (!items.length) return "";
+  return `
+    <section class="preview-block">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="media-grid">
+        ${items.map((item) => `
+          <figure>
+            <img src="${escapeHtml(item.url)}" alt="${escapeHtml(alt)}" />
+            <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.objectKey || "OSS image")}</a>
+          </figure>
+        `).join("")}
+      </div>
+    </section>
+  `;
 }
 
-function renderVideo(item) {
-  return `<div class="video-preview">
-    <video src="${escapeHtml(item.url)}" controls playsinline></video>
-    <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.objectKey || "OSS video")}</a>
-  </div>`;
+function renderVideo(item, title = "Video") {
+  if (!item?.url) return "";
+  return `
+    <section class="preview-block">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="video-preview">
+        <video src="${escapeHtml(item.url)}" controls playsinline></video>
+        <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.objectKey || "OSS video")}</a>
+      </div>
+    </section>
+  `;
 }
 
 function segmentPromptsFrom(response) {
   const segments = Array.isArray(response.videoSegments) ? response.videoSegments : [];
   if (segments.length) return segments.map((segment) => segment.input?.prompt || "").filter(Boolean);
   const storyboard = Array.isArray(response.plan?.storyboard) ? response.plan.storyboard : [];
-  return storyboard.map((shot, index) => `多个镜头。${shot.scene || ""} ${shot.camera || ""} ${shot.emotion || ""}。镜头稳定，动作自然，柔和电影光线。无文字。`);
+  return storyboard.map((shot, index) => [
+    `Multiple shots. Segment ${index + 1}: ${shot.scene || ""}.`,
+    shot.camera ? `Camera: ${shot.camera}.` : "",
+    shot.emotion ? `Emotion: ${shot.emotion}.` : "",
+    "Keep the same character identity from the reference image.",
+    "Smooth natural motion, soft cinematic light, no text.",
+  ].filter(Boolean).join(" "));
 }
 
 function renderPromptEditor(response) {
+  const characterPrompt = response.characterInput?.prompt || "";
   const imagePrompt = response.imageInput?.prompt || response.plan?.imagePrompt || "";
   const videoPrompt = response.plan?.videoPrompt || "";
   const segmentPrompts = segmentPromptsFrom(response);
   const negativePrompt = response.plan?.negativePrompt || "";
   return `
     <details class="prompt-editor" open>
-      <summary>提示词，可编辑后继续处理</summary>
-      <label>图片提示词<textarea data-xhs-field="imagePrompt" rows="4">${escapeHtml(imagePrompt)}</textarea></label>
-      <label>视频总提示词<textarea data-xhs-field="videoPrompt" rows="4">${escapeHtml(videoPrompt)}</textarea></label>
-      <label>分段视频提示词 JSON<textarea data-xhs-field="segmentPromptsJson" rows="7">${escapeHtml(JSON.stringify(segmentPrompts, null, 2))}</textarea></label>
-      <label>负面提示词<textarea data-xhs-field="negativePrompt" rows="3">${escapeHtml(negativePrompt)}</textarea></label>
+      <summary>Prompts: edit and resume</summary>
+      <label>Character reference prompt<textarea data-xhs-field="characterPrompt" rows="4">${escapeHtml(characterPrompt)}</textarea></label>
+      <label>Image prompt<textarea data-xhs-field="imagePrompt" rows="4">${escapeHtml(imagePrompt)}</textarea></label>
+      <label>Base video prompt<textarea data-xhs-field="videoPrompt" rows="4">${escapeHtml(videoPrompt)}</textarea></label>
+      <label>Segment video prompts JSON<textarea data-xhs-field="segmentPromptsJson" rows="7">${escapeHtml(JSON.stringify(segmentPrompts, null, 2))}</textarea></label>
+      <label>Negative prompt<textarea data-xhs-field="negativePrompt" rows="3">${escapeHtml(negativePrompt)}</textarea></label>
     </details>
   `;
 }
@@ -53,38 +81,51 @@ function renderResumeAction(run) {
   return `
     <div class="resume-box">
       <div>
-        <strong>任务中断</strong>
-        <span>可以从已保存的 checkpoint 继续处理；如果你编辑了提示词，会带着新提示词继续。</span>
+        <strong>Task interrupted</strong>
+        <span>Resume from the saved checkpoint. Edited prompts above will be used for the next unfinished step.</span>
       </div>
-      <button type="button" class="resume-button" data-resume-kind="xhs" data-request-id="${escapeHtml(run.requestId)}">继续处理</button>
+      <button type="button" class="resume-button" data-resume-kind="xhs" data-request-id="${escapeHtml(run.requestId)}">Resume</button>
     </div>
   `;
 }
 
-function renderXhs(run, response) {
-  const storyboard = Array.isArray(response.plan?.storyboard) ? response.plan.storyboard : [];
-  const progressText = response.statusDetail ? `<div class="meta">当前阶段：${escapeHtml(response.statusDetail)}</div>` : "";
-  const errorText = run.status === "failed" ? `<div class="error-text">${escapeHtml(run.errorMessage || "任务失败")}</div>` : "";
+function renderStoryboard(storyboard = []) {
+  if (!storyboard.length) return "";
   return `
-    <div class="xhs-preview">
-      ${renderResumeAction(run)}
-      ${errorText}
-      <div class="text-preview">
-        <strong>关键词：</strong>${escapeHtml(response.keyword || "")}
-        <br /><strong>钩子：</strong>${escapeHtml(response.hook || "")}
-        ${progressText}
-      </div>
+    <section class="preview-block">
+      <h3>Storyboard</h3>
       <div class="storyboard-list">
         ${storyboard.map((shot) => `
           <article>
             <strong>${escapeHtml(shot.time || "")}</strong>
             <span>${escapeHtml(shot.scene || "")}</span>
+            <small>${escapeHtml(shot.camera || "")}</small>
           </article>
         `).join("")}
       </div>
+    </section>
+  `;
+}
+
+function renderXhs(run, response) {
+  const storyboard = Array.isArray(response.plan?.storyboard) ? response.plan.storyboard : [];
+  const progressText = response.statusDetail ? `<div class="meta">Stage: ${escapeHtml(response.statusDetail)}</div>` : "";
+  const errorText = run.status === "failed" ? `<div class="error-text">${escapeHtml(run.errorMessage || "Task failed")}</div>` : "";
+  return `
+    <div class="xhs-preview">
+      ${renderResumeAction(run)}
+      ${errorText}
+      <section class="preview-block text-preview">
+        <h3>XHS Plan</h3>
+        <p><strong>Keyword:</strong> ${escapeHtml(response.keyword || "")}</p>
+        <p><strong>Hook:</strong> ${escapeHtml(response.hook || "")}</p>
+        ${progressText}
+      </section>
+      ${renderStoryboard(storyboard)}
       ${renderPromptEditor(response)}
-      ${response.ossImages?.length ? renderImages(response.ossImages, "xhs generated image") : ""}
-      ${response.ossVideo?.url ? renderVideo(response.ossVideo) : ""}
+      ${renderImages(response.ossCharacterImages || [], "character reference", "Character Reference")}
+      ${renderImages(response.ossImages || [], "xhs cover image", "Cover Image")}
+      ${renderVideo(response.ossVideo, "Final Video")}
     </div>
   `;
 }
@@ -92,15 +133,15 @@ function renderXhs(run, response) {
 export function renderAnswer(run) {
   const response = run.response || {};
   if (response.workflow === "xhs_30s_video") return renderXhs(run, response);
-  if (run.status === "pending" || run.status === "running") return "任务还在运行中。";
+  if (run.status === "pending" || run.status === "running") return "Task is still running.";
   if (run.status === "failed" && run.kind?.startsWith("xhs")) {
-    return `${renderResumeAction(run)}<div class="error-text">${escapeHtml(run.errorMessage || "任务失败")}</div>`;
+    return `${renderResumeAction(run)}<div class="error-text">${escapeHtml(run.errorMessage || "Task failed")}</div>`;
   }
-  if (run.status === "failed") return escapeHtml(run.errorMessage || "任务失败");
+  if (run.status === "failed") return escapeHtml(run.errorMessage || "Task failed");
   if (response.text) return `<div class="text-preview">${escapeHtml(response.text)}</div>`;
   if (response.ossImages?.length) return renderImages(response.ossImages);
   if (response.ossVideo?.url) return renderVideo(response.ossVideo);
-  return "没有可预览内容。";
+  return "No preview content.";
 }
 
 function editedPromptPayload() {
@@ -117,7 +158,7 @@ function editedPromptPayload() {
 async function resumeXhsTask(button) {
   const requestId = button.dataset.requestId;
   button.disabled = true;
-  button.textContent = "继续处理中...";
+  button.textContent = "Resuming...";
   const [{ api }, { trackTask, poll }] = await Promise.all([
     import("./apiClient.js"),
     import("./polling.js"),
@@ -132,7 +173,7 @@ function bindResumeButtons() {
     button.addEventListener("click", () => {
       resumeXhsTask(button).catch((error) => {
         button.disabled = false;
-        button.textContent = "继续处理";
+        button.textContent = "Resume";
         document.getElementById("status").textContent = "xhs resume failed";
         document.getElementById("answer").insertAdjacentHTML("afterbegin", `<div class="error-text">${escapeHtml(error.message)}</div>`);
       });

@@ -55,8 +55,25 @@ function customSegmentPrompt(input, index) {
   return "";
 }
 
+function characterPromptFor(input, plan) {
+  const custom = String(input.characterPrompt || "").trim();
+  if (custom) return hardenNoTextPrompt(custom);
+  const character = plan.character || {};
+  return hardenNoTextPrompt([
+    "Vertical character reference portrait.",
+    character.role || "young creative founder",
+    character.appearance || "friendly person in neutral casual clothes, clean modern style",
+    character.props ? `Simple props: ${character.props}` : "",
+    "Clean background, natural face, consistent outfit, soft cinematic light.",
+    "This is the identity reference for all later images and videos.",
+  ].filter(Boolean).join(", "));
+}
+
 function imagePromptFor(input, plan) {
-  return hardenNoTextPrompt(input.imagePrompt || plan.imagePrompt);
+  return hardenNoTextPrompt([
+    input.imagePrompt || plan.imagePrompt,
+    "Preserve the same person, face, outfit, hair, age, and overall style from the character reference image.",
+  ].join(", "));
 }
 
 function videoPromptFor(input, plan, shot, index) {
@@ -196,6 +213,9 @@ function baseProgress(input, checkpoint = {}) {
     hook: checkpoint.hook || "",
     plannerText: checkpoint.plannerText || "",
     plan: checkpoint.plan || null,
+    characterInput: checkpoint.characterInput || null,
+    characterResult: checkpoint.characterResult || null,
+    ossCharacterImages: checkpoint.ossCharacterImages || [],
     imageInput: checkpoint.imageInput || null,
     segmentConfig: checkpoint.segmentConfig || null,
     ossImages: checkpoint.ossImages || [],
@@ -241,11 +261,32 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
     });
   }
 
+  const characterInput = progress.characterInput || {
+    model: input.imageModel,
+    prompt: characterPromptFor(input, plan),
+    size: input.characterImageSize || input.imageSize || "768x1024",
+    responseFormat: "url",
+  };
+  let characterResult = progress.characterResult;
+  if (!characterResult?.ossImages?.[0]?.url) {
+    await saveProgress(progress, onProgress, { statusDetail: "character_generating", characterInput });
+    characterResult = await withRetry("xhs character reference image", () => imageGenerationRunnable.invoke(characterInput));
+    await saveProgress(progress, onProgress, {
+      statusDetail: "character_generated",
+      characterInput,
+      characterResult,
+      ossCharacterImages: characterResult.ossImages || [],
+    });
+  }
+  const characterImage = characterResult.ossImages?.[0] || null;
+  if (!characterImage?.url) throw new Error("character image generation did not return an OSS image");
+
   const imageInput = progress.imageInput || {
     model: input.imageModel,
     prompt: imagePromptFor(input, plan),
     size: input.imageSize || "768x1024",
     responseFormat: "url",
+    imageUrls: [characterImage.url],
   };
   let imageResult = progress.imageResult;
   if (!imageResult?.ossImages?.[0]?.url) {
@@ -380,6 +421,9 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
     hook: plan.hook,
     plannerText,
     plan,
+    characterInput,
+    characterResult,
+    ossCharacterImages: characterResult.ossImages || [],
     imageInput,
     segmentConfig: {
       segmentCount,

@@ -1,19 +1,19 @@
 export function buildXhsPlannerPrompt(input = {}) {
   const keyword = String(input.keyword || "").trim();
-  const fallbackTopic = String(input.topicHint || "AI tools, side hustle, productivity, personal growth").trim();
+  const topicHint = String(input.topicHint || "AI tools, side hustle, productivity, personal growth").trim();
   return `
 You are a Xiaohongshu short-video planner.
 Create a simple 30-second fan-growth video plan.
 
 Keyword: ${keyword || "(recommend one high-potential keyword yourself)"}
-Topic hints: ${fallbackTopic}
+Topic hints: ${topicHint}
 
 Rules:
-- Keep image and video prompts simple.
-- Use short multi-shot video language: shot 1, shot 2, shot 3.
+- Keep image and video prompts short and clear.
+- Use multi-shot video language: shot 1, shot 2, shot 3.
 - Describe scene, subject, action, camera movement, and light.
 - Do not render any visible text in images or videos.
-- Avoid: captions, subtitles, letters, words, logos, signs, posters, labels, UI text, watermarks.
+- Avoid captions, subtitles, letters, words, logos, signs, posters, labels, UI text, and watermarks.
 - Prefer one stable character, one clear action, soft cinematic motion.
 
 Return strict JSON only:
@@ -41,10 +41,10 @@ Return strict JSON only:
 }
 
 export function fallbackXhsPlan(input = {}) {
-  const keyword = String(input.keyword || "AI副业").trim();
+  const keyword = String(input.keyword || "AI side hustle").trim();
   return {
     keyword,
-    hook: `${keyword}，普通人也能马上开始`,
+    hook: `${keyword}: start with one simple idea`,
     storyboard: [
       { time: "0-6s", scene: "A young creator opens a laptop in a cozy room.", camera: "Slow push-in.", emotion: "Curiosity" },
       { time: "6-12s", scene: "Soft glowing idea shapes appear around the creator.", camera: "Gentle side move.", emotion: "Surprise" },

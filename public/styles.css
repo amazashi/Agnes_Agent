@@ -283,6 +283,18 @@ button {
   gap: 14px;
 }
 
+.preview-block {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.preview-block h3 {
+  margin: 0;
+  color: #48546c;
+  font-size: 14px;
+}
+
 .resume-box {
   display: flex;
   flex-wrap: wrap;
@@ -341,6 +353,13 @@ button {
 
 .storyboard-list strong {
   color: #8f6a9e;
+}
+
+.storyboard-list small {
+  grid-column: 2;
+  min-width: 0;
+  color: #6d7788;
+  font-weight: 800;
 }
 
 .prompt-editor {

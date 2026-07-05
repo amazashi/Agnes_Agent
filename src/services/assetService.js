@@ -4,6 +4,7 @@ export function refreshRunAssets(run) {
   if (!run?.response) return run;
   const response = { ...run.response };
   if (Array.isArray(response.ossImages)) response.ossImages = response.ossImages.map(refreshOssAssetUrl);
+  if (Array.isArray(response.ossCharacterImages)) response.ossCharacterImages = response.ossCharacterImages.map(refreshOssAssetUrl);
   if (response.ossVideo) response.ossVideo = refreshOssAssetUrl(response.ossVideo);
   if (response.inputImage) response.inputImage = refreshOssAssetUrl(response.inputImage);
   if (Array.isArray(response.transitionFrames)) {
@@ -22,6 +23,12 @@ export function refreshRunAssets(run) {
     response.imageResult = {
       ...response.imageResult,
       ossImages: response.imageResult.ossImages.map(refreshOssAssetUrl),
+    };
+  }
+  if (response.characterResult?.ossImages) {
+    response.characterResult = {
+      ...response.characterResult,
+      ossImages: response.characterResult.ossImages.map(refreshOssAssetUrl),
     };
   }
   if (response.videoResult?.ossVideo) {

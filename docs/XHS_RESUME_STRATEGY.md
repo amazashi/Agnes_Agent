@@ -72,6 +72,16 @@ resume 时会跳过：
 
 如果某段视频已经完成，但最后一帧还没抽取，resume 会先补抽这一帧，再继续下一段。
 
+如果某段视频已经在 Agnes 创建了远端任务，但本地还在等待模型返回，checkpoint 会保存：
+
+- `baseUrl`
+- `model`
+- `prompt`
+- Agnes 返回的 `task_id`
+- Agnes 返回的 `video_id`
+
+resume 时不会重新创建这一段，而是使用已有 `task_id/video_id` 继续 poll。密钥不会写入数据库；恢复时从 `.env` 重新读取。
+
 ### 5. Retry
 
 视频段生成和图片生成有轻量重试：

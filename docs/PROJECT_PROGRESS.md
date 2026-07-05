@@ -148,6 +148,8 @@
 - 每段视频生成遇到上游 `503 / busy / timeout` 会自动重试。
 - XHS 长任务支持 checkpoint：规划、出图、每段视频、过渡帧、最终拼接都会写入 SQLite。
 - XHS 失败后保留已完成进度，支持 `POST /api/xhs/requests/:requestId/resume` 断点续做。
+- XHS 视频段创建 Agnes 远端任务后会保存 `task_id/video_id`，中途断开后可以继续 poll，不必重新创建该段。
+- checkpoint 不保存 API key，resume 时从 `.env` 重新读取密钥。
 - XHS 任务请求和最终响应写入 SQLite。
 
 核心文件：
@@ -205,6 +207,7 @@ npm run check
 - XHS 30s 完整生成链路。当前只验证了短帧数链路，默认 30s 配置为 `5 * 121 frames / 20 fps = 30.25s`。
 - XHS 2 段连续性测试遇到 Agnes 上游 `503 Service busy`，已补重试机制。
 - XHS checkpoint / resume 代码已通过 `npm run check`。
+- 已检查 XHS 中途等待视频模型返回的场景，并补充远端视频任务 checkpoint。
 
 ## 当前 Git 状态
 
@@ -306,3 +309,4 @@ git push
 - 增加 XHS 分段视频生成重试机制。
 - 增加 XHS 长任务 checkpoint 和 resume 方案。
 - 新增 XHS 长任务断点续做文档。
+- 增强 XHS 视频段 checkpoint：保存 Agnes `task_id/video_id`，支持等待中断后继续 poll。

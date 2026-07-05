@@ -1,9 +1,11 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { createChatModel } from "../models/agnesChatModel.js";
 import { imageGenerationRunnable } from "./imageRunnable.js";
-import { videoGenerationRunnable } from "./videoRunnable.js";
+import { createVideoWithAgnes, pollAgnesVideo } from "../../providers/agnes/videoClient.js";
+import { getAgnesConfig, requireAgnesApiKey } from "../../providers/agnes/agnesConfig.js";
 import { buildXhsPlannerPrompt, fallbackXhsPlan } from "../prompts/xhsVideoPrompt.js";
 import { concatVideosToOss, uploadLastFrameFromVideo } from "../../media/videoTools.js";
+import { uploadRemoteAsset } from "../../oss/bitifulClient.js";
 
 function extractJson(text) {
   const raw = String(text || "").trim();
@@ -62,6 +64,96 @@ async function withRetry(label, task, retries = 2) {
     }
   }
   throw new Error(`${label} failed after retry: ${lastError?.message || String(lastError)}`);
+}
+
+function videoUrlFromResult(result) {
+  return result?.remixed_from_video_id || result?.url || result?.video_url || null;
+}
+
+function videoSucceeded(result) {
+  const status = String(result?.status || "").toLowerCase();
+  return ["completed", "succeeded", "success"].includes(status) || Boolean(result?.remixed_from_video_id || result?.url || result?.video_url);
+}
+
+async function runVideoSegment({ index, shot, videoInput, existingSegment, onProgress, progress, videoSegments, transitionFrames }) {
+  const segment = existingSegment || {
+    index,
+    shot,
+    input: { ...videoInput, image: videoInput.imageObjectKey || videoInput.image },
+    status: "creating",
+  };
+
+  if (!existingSegment) {
+    videoSegments.push(segment);
+  }
+
+  if (!segment.created?.created) {
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_creating`,
+      videoSegments,
+      transitionFrames,
+    });
+    const createdVideo = await withRetry(`xhs video segment ${index + 1} create`, () => createVideoWithAgnes(videoInput));
+    segment.created = {
+      baseUrl: createdVideo.baseUrl,
+      model: createdVideo.model,
+      prompt: createdVideo.prompt,
+      created: createdVideo.created,
+    };
+    segment.status = "created";
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_created`,
+      videoSegments,
+      transitionFrames,
+    });
+  }
+
+  if (!segment.result || !videoSucceeded(segment.result)) {
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_polling`,
+      videoSegments,
+      transitionFrames,
+    });
+    const created = segment.created.created;
+    const config = getAgnesConfig(videoInput);
+    segment.result = await pollAgnesVideo({
+      baseUrl: segment.created.baseUrl,
+      apiKey: requireAgnesApiKey(config),
+      model: segment.created.model,
+      videoId: created.video_id || created.videoId,
+      taskId: created.task_id || created.id,
+    });
+    segment.status = videoSucceeded(segment.result) ? "completed" : "failed";
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_${segment.status}`,
+      videoSegments,
+      transitionFrames,
+    });
+  }
+
+  if (!videoSucceeded(segment.result)) {
+    throw new Error(segment.result?.error ? JSON.stringify(segment.result.error) : `video segment ${index + 1} status: ${segment.result?.status || "unknown"}`);
+  }
+
+  if (!segment.ossVideo?.url) {
+    const sourceUrl = videoUrlFromResult(segment.result);
+    if (!sourceUrl) throw new Error(`video segment ${index + 1} did not return a video URL`);
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_uploading`,
+      videoSegments,
+      transitionFrames,
+    });
+    segment.videoUrl = sourceUrl;
+    segment.ossVideo = await uploadRemoteAsset(sourceUrl, { kind: "video" });
+    segment.status = "uploaded";
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_uploaded`,
+      videoSegments,
+      transitionFrames,
+    });
+  }
+
+  return segment;
 }
 
 function baseProgress(input, checkpoint = {}) {
@@ -166,8 +258,24 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
   });
 
   for (const [index, shot] of storyboard.entries()) {
-    const existingSegment = videoSegments.find((segment) => Number(segment.index) === index && segment.ossVideo?.url);
+    const existingSegment = videoSegments.find((segment) => Number(segment.index) === index);
     if (existingSegment) {
+      if (!existingSegment.ossVideo?.url) {
+        const videoInput = {
+          ...(existingSegment.input || {}),
+          image: currentImage.url,
+        };
+        await runVideoSegment({
+          index,
+          shot,
+          videoInput,
+          existingSegment,
+          onProgress,
+          progress,
+          videoSegments,
+          transitionFrames,
+        });
+      }
       if (index < storyboard.length - 1) {
         let existingFrame = transitionFrames.find((item) => Number(item.index) === index)?.frame;
         if (!existingFrame?.url) {
@@ -187,6 +295,7 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
       model: input.videoModel,
       prompt: segmentPrompt(plan, shot, index),
       image: currentImage.url,
+      imageObjectKey: currentImage.objectKey,
       width: Number(input.width || 768),
       height: Number(input.height || 1152),
       numFrames: segmentFrames,
@@ -195,27 +304,19 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
       seed: input.seed ? Number(input.seed) + index : undefined,
       negativePrompt: plan.negativePrompt,
     };
-    await saveProgress(progress, onProgress, {
-      statusDetail: `video_segment_${index + 1}_generating`,
-      videoSegments,
-      transitionFrames,
-    });
-    const videoResult = await withRetry(`xhs video segment ${index + 1}`, () => videoGenerationRunnable.invoke(videoInput));
-    videoSegments.push({
+    const segment = await runVideoSegment({
       index,
       shot,
-      input: { ...videoInput, image: currentImage.objectKey || currentImage.url },
-      result: videoResult,
-      ossVideo: videoResult.ossVideo,
-    });
-    await saveProgress(progress, onProgress, {
-      statusDetail: `video_segment_${index + 1}_generated`,
+      videoInput,
+      existingSegment: null,
+      onProgress,
+      progress,
       videoSegments,
       transitionFrames,
     });
     if (index < storyboard.length - 1) {
       await saveProgress(progress, onProgress, { statusDetail: `transition_frame_${index + 1}_extracting` });
-      const nextFrame = await uploadLastFrameFromVideo(videoResult.ossVideo?.url || videoResult.videoUrl, { kind: "xhs-transition-frame" });
+      const nextFrame = await uploadLastFrameFromVideo(segment.ossVideo?.url || segment.videoUrl, { kind: "xhs-transition-frame" });
       transitionFrames.push({ index, frame: nextFrame });
       currentImage = nextFrame;
       await saveProgress(progress, onProgress, {

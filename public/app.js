@@ -9,6 +9,7 @@ initUploadZones();
 bindSubmit("chat", "chat-form");
 bindSubmit("image", "image-form");
 bindSubmit("video", "video-form");
+bindSubmit("xhs", "xhs-form");
 startPolling();
 
 document.getElementById("refresh").addEventListener("click", () => refreshRuns().catch((error) => {

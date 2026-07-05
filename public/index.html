@@ -15,6 +15,7 @@
           <button class="tab active" type="button" data-tab="chat">Chat</button>
           <button class="tab" type="button" data-tab="image">Image</button>
           <button class="tab" type="button" data-tab="video">Video</button>
+          <button class="tab" type="button" data-tab="xhs">XHS</button>
         </nav>
 
         <form id="chat-form" class="task-form active" data-panel="chat">
@@ -132,6 +133,27 @@
           <label>&#38236;&#22836;<input name="camera" value="slow cinematic push-in" /></label>
           <label>&#20809;&#32447;/&#27675;&#22260;<input name="lighting" value="bright soft studio lighting" /></label>
           <button type="submit">&#36816;&#34892;&#35270;&#39057; Runnable</button>
+        </form>
+
+        <form id="xhs-form" class="task-form" data-panel="xhs">
+          <label>热词 / 关键词<input name="keyword" placeholder="例如：AI副业、普通人变现、情绪价值；留空则由 AI 推荐" /></label>
+          <label>方向提示<textarea name="topicHint" rows="3" placeholder="可选：目标人群、账号领域、想吸引的人群">AI工具，普通人副业，效率提升，小红书涨粉</textarea></label>
+          <div class="template-grid">
+            <label>Chat Model<input name="model" placeholder="agnes-2.0-flash" /></label>
+            <label>Image Model
+              <select name="imageModel">
+                <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
+                <option value="agnes-image-2.0-flash">agnes-image-2.0-flash</option>
+              </select>
+            </label>
+            <label>Video Model<input name="videoModel" placeholder="agnes-video-v2.0" /></label>
+            <label>Image Size<input name="imageSize" placeholder="768x1024" /></label>
+            <label>Width<input name="width" placeholder="768" /></label>
+            <label>Height<input name="height" placeholder="1152" /></label>
+            <label>Frames<input name="numFrames" placeholder="441" /></label>
+            <label>FPS<input name="frameRate" placeholder="15" /></label>
+          </div>
+          <button type="submit">生成小红书 30s 视频链路</button>
         </form>
       </section>
 

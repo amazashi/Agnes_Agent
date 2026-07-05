@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-阶段：`v0.1 本地工作台已成型`
+阶段：`v0.2 小红书视频链路接入中`
 
 当前项目已经完成一个可运行的 LangChain.js + Agnes + SQLite + OSS 工作台：
 
@@ -17,6 +17,7 @@
 - 支持每次请求和最终响应写入 SQLite。
 - 支持前端轮询任务状态。
 - 支持任务结果预览：文字、图片、视频。
+- 支持小红书 30s 打粉视频链路：热词/关键词 -> 分镜构思 -> 角色设定 -> AI 出图 -> 图生视频。
 - 已初始化 Git，并推送到 GitHub。
 
 ## 已完成模块
@@ -128,6 +129,33 @@
 - 任务历史列表。
 - 文本/图片/视频预览。
 
+### 7. 小红书 30s 视频链路
+
+已完成：
+
+- 新增 XHS 前端 tag。
+- 支持输入一个关键词。
+- 关键词为空时由文本模型推荐热词。
+- 文本模型生成分镜构思。
+- 文本模型生成角色设定。
+- 文本模型生成图片提示词和视频提示词。
+- 默认提示词要求图片和视频中不要出现文字、字幕、logo、水印、标牌、海报、UI 文本。
+- 图片模型生成无字视觉封面/参考图。
+- 视频模型基于参考图生成接近 30s 的短视频。
+- 由于 Agnes 视频限制 `num_frames <= 441` 且 `8n + 1`，默认使用 `441 frames / 15 fps = 29.4s`。
+- XHS 任务请求和最终响应写入 SQLite。
+
+核心文件：
+
+- `src/langchain/prompts/xhsVideoPrompt.js`
+- `src/langchain/chains/xhsVideoChain.js`
+- `src/services/xhsService.js`
+- `src/controllers/xhsController.js`
+- `src/routes/apiRoutes.js`
+- `public/index.html`
+- `public/app.js`
+- `public/js/previewRenderer.js`
+
 核心文件：
 
 - `public/index.html`
@@ -158,12 +186,16 @@ npm run check
 - Chat stream 完整结果可以写入 SQLite。
 - 图片上传接口可以把 Data URL 上传到 OSS。
 - 文生视频可以创建、轮询完成、上传 OSS，并写入 SQLite。
+- XHS 链路新增代码已通过 `npm run check`。
+- XHS 短帧数冒烟测试已通过：`db1fb8ab-6bfb-4c8e-8b2a-6123722d2f9c`。
+- XHS 冒烟测试完成了文本规划、AI 出图、图生视频、OSS 上传、SQLite 入库。
 
 已知未完全覆盖的验证：
 
 - 图生视频完整生成。
 - 多图/keyframes 视频完整生成。
 - 工具调用 + stream 的组合。
+- XHS 30s 完整生成链路。当前只验证了短帧数链路，默认 30s 配置为 `441 frames / 15 fps = 29.4s`。
 
 ## 当前 Git 状态
 
@@ -192,9 +224,11 @@ f9f0340 Initial langchain sqlite workbench
 - 给远端 Agnes API 调用补更细的超时和错误分类。
 - 给 OSS 上传失败增加更清晰的错误提示。
 - 前端显示上传失败、任务失败、参数错误的结构化提示。
+- 给 XHS 链路增加更细的阶段状态，例如 planning、image_generating、video_generating。
 
 ### P1：视频能力验证
 
+- 实测 XHS 30s 视频完整链路。
 - 实测图生视频完整链路。
 - 实测多图视频完整链路。
 - 实测 keyframes 视频完整链路。
@@ -253,3 +287,7 @@ git push
 - 建立项目进度文档。
 - 记录当前工作台能力。
 - 记录已验证接口和后续计划。
+- 新增小红书 30s 打粉视频链路规划和代码接入。
+- 新增 XHS 前端 tag。
+- 新增 XHS 链路文案约束：图片和视频内禁止出现文字。
+- 完成 XHS 短帧数冒烟测试，确认链路可以跑通并写入 SQLite。

@@ -263,6 +263,32 @@ button {
   white-space: pre-wrap;
 }
 
+.xhs-preview {
+  display: grid;
+  gap: 14px;
+}
+
+.storyboard-list {
+  display: grid;
+  gap: 8px;
+}
+
+.storyboard-list article {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow:
+    inset 5px 6px 12px rgba(111, 92, 130, 0.1),
+    inset -6px -7px 12px rgba(255, 255, 255, 0.72);
+}
+
+.storyboard-list strong {
+  color: #8f6a9e;
+}
+
 pre {
   flex: 1;
   min-height: 0;

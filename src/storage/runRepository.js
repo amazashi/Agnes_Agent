@@ -46,9 +46,22 @@ export function updateRunRunning(requestId) {
   const ts = nowIso();
   db.prepare(`
     UPDATE chain_runs
-    SET status = 'running', started_at = ?, updated_at = ?
+    SET status = 'running',
+        started_at = COALESCE(started_at, ?),
+        finished_at = NULL,
+        error_message = NULL,
+        updated_at = ?
     WHERE request_id = ?
   `).run(ts, ts, requestId);
+}
+
+export function updateRunProgress(requestId, response) {
+  const ts = nowIso();
+  db.prepare(`
+    UPDATE chain_runs
+    SET response_json = ?, updated_at = ?
+    WHERE request_id = ?
+  `).run(jsonText(response), ts, requestId);
 }
 
 export function updateRunDone(requestId, { status, response = null, error = null, startedAt = null }) {

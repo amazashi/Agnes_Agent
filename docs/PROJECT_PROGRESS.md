@@ -146,6 +146,8 @@
 - 最后使用 ffmpeg 临时拼接多段视频并上传 OSS，临时文件会删除。
 - 由于 Agnes 视频限制 `num_frames <= 441` 且 `8n + 1`，默认使用 `5 段 * 121 frames / 20 fps = 30.25s`。
 - 每段视频生成遇到上游 `503 / busy / timeout` 会自动重试。
+- XHS 长任务支持 checkpoint：规划、出图、每段视频、过渡帧、最终拼接都会写入 SQLite。
+- XHS 失败后保留已完成进度，支持 `POST /api/xhs/requests/:requestId/resume` 断点续做。
 - XHS 任务请求和最终响应写入 SQLite。
 
 核心文件：
@@ -158,6 +160,7 @@
 - `public/index.html`
 - `public/app.js`
 - `public/js/previewRenderer.js`
+- `docs/XHS_RESUME_STRATEGY.md`
 
 核心文件：
 
@@ -201,6 +204,7 @@ npm run check
 - 工具调用 + stream 的组合。
 - XHS 30s 完整生成链路。当前只验证了短帧数链路，默认 30s 配置为 `5 * 121 frames / 20 fps = 30.25s`。
 - XHS 2 段连续性测试遇到 Agnes 上游 `503 Service busy`，已补重试机制。
+- XHS checkpoint / resume 代码已通过 `npm run check`。
 
 ## 当前 Git 状态
 
@@ -300,3 +304,5 @@ git push
 - 增加 ffmpeg 抽取上一段最后一帧，并作为下一段输入图。
 - 增加 ffmpeg 拼接最终视频并上传 OSS。
 - 增加 XHS 分段视频生成重试机制。
+- 增加 XHS 长任务 checkpoint 和 resume 方案。
+- 新增 XHS 长任务断点续做文档。

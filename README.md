@@ -74,6 +74,7 @@ POST /api/assets/upload
 
 - [LangChain 学习文档](docs/LANGCHAIN_LEARNING.md)
 - [请求链路学习文档](docs/REQUEST_CHAIN_GUIDE.md)
+- [XHS 长任务断点续做策略](docs/XHS_RESUME_STRATEGY.md)
 - [项目过程记录](docs/PROJECT_PROGRESS.md)
 
 ## Git 进度规则

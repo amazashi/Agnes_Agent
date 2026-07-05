@@ -64,31 +64,78 @@ async function withRetry(label, task, retries = 2) {
   throw new Error(`${label} failed after retry: ${lastError?.message || String(lastError)}`);
 }
 
-export async function invokeXhsVideoChain(input = {}) {
+function baseProgress(input, checkpoint = {}) {
+  return {
+    framework: "langchain-js",
+    workflow: "xhs_30s_video",
+    steps: ["hotword_or_keyword_planning", "storyboard", "character_design", "ai_image_generation", "chained_image_to_video_segments", "concat_final_video"],
+    statusDetail: checkpoint.statusDetail || "starting",
+    keyword: checkpoint.keyword || String(input.keyword || "").trim(),
+    hook: checkpoint.hook || "",
+    plannerText: checkpoint.plannerText || "",
+    plan: checkpoint.plan || null,
+    imageInput: checkpoint.imageInput || null,
+    segmentConfig: checkpoint.segmentConfig || null,
+    ossImages: checkpoint.ossImages || [],
+    transitionFrames: checkpoint.transitionFrames || [],
+    imageResult: checkpoint.imageResult || null,
+    videoSegments: checkpoint.videoSegments || [],
+    ossVideo: checkpoint.ossVideo || null,
+  };
+}
+
+async function saveProgress(progress, onProgress, patch = {}) {
+  Object.assign(progress, patch);
+  if (onProgress) await onProgress(progress);
+}
+
+export async function invokeXhsVideoChain(input = {}, context = {}) {
+  const onProgress = context.onProgress;
+  const progress = baseProgress(input, context.checkpoint || {});
   const model = createChatModel({ ...input, temperature: input.temperature ?? 0.4, maxTokens: input.maxTokens ?? 1600 });
   const plannerPrompt = buildXhsPlannerPrompt(input);
-  let plannerText = "";
-  let plan = fallbackXhsPlan(input);
+  let plannerText = progress.plannerText || "";
+  let plan = progress.plan || fallbackXhsPlan(input);
 
-  try {
-    const plannerMessage = await model.invoke([
-      new SystemMessage("You are a practical Xiaohongshu video planning assistant. Return valid JSON only."),
-      new HumanMessage(plannerPrompt),
-    ]);
-    plannerText = typeof plannerMessage.content === "string" ? plannerMessage.content : JSON.stringify(plannerMessage.content);
-    plan = normalizePlan(extractJson(plannerText), input);
-  } catch (error) {
-    plannerText = `fallback used: ${error.message || String(error)}`;
-    plan = normalizePlan(plan, input);
+  if (!progress.plan) {
+    await saveProgress(progress, onProgress, { statusDetail: "planning" });
+    try {
+      const plannerMessage = await model.invoke([
+        new SystemMessage("You are a practical Xiaohongshu video planning assistant. Return valid JSON only."),
+        new HumanMessage(plannerPrompt),
+      ]);
+      plannerText = typeof plannerMessage.content === "string" ? plannerMessage.content : JSON.stringify(plannerMessage.content);
+      plan = normalizePlan(extractJson(plannerText), input);
+    } catch (error) {
+      plannerText = `fallback used: ${error.message || String(error)}`;
+      plan = normalizePlan(plan, input);
+    }
+    await saveProgress(progress, onProgress, {
+      statusDetail: "planned",
+      keyword: plan.keyword,
+      hook: plan.hook,
+      plannerText,
+      plan,
+    });
   }
 
-  const imageInput = {
+  const imageInput = progress.imageInput || {
     model: input.imageModel,
     prompt: hardenNoTextPrompt(plan.imagePrompt),
     size: input.imageSize || "768x1024",
     responseFormat: "url",
   };
-  const imageResult = await imageGenerationRunnable.invoke(imageInput);
+  let imageResult = progress.imageResult;
+  if (!imageResult?.ossImages?.[0]?.url) {
+    await saveProgress(progress, onProgress, { statusDetail: "image_generating", imageInput });
+    imageResult = await withRetry("xhs cover image", () => imageGenerationRunnable.invoke(imageInput));
+    await saveProgress(progress, onProgress, {
+      statusDetail: "image_generated",
+      imageInput,
+      imageResult,
+      ossImages: imageResult.ossImages || [],
+    });
+  }
   const coverImage = imageResult.ossImages?.[0] || null;
   if (!coverImage?.url) throw new Error("image generation did not return an OSS image");
 
@@ -99,10 +146,43 @@ export async function invokeXhsVideoChain(input = {}) {
   while (storyboard.length < segmentCount) storyboard.push(plan.storyboard[storyboard.length % plan.storyboard.length]);
 
   const videoSegments = [];
-  const transitionFrames = [];
-  let currentImage = coverImage;
+  videoSegments.push(...(progress.videoSegments || []));
+  const transitionFrames = [...(progress.transitionFrames || [])];
+  let currentImage = videoSegments.length
+    ? (transitionFrames[transitionFrames.length - 1]?.frame || coverImage)
+    : coverImage;
+
+  await saveProgress(progress, onProgress, {
+    statusDetail: "video_segments_starting",
+    segmentConfig: {
+      segmentCount,
+      segmentFrames,
+      frameRate,
+      estimatedSeconds: Number(((segmentFrames / frameRate) * segmentCount).toFixed(2)),
+      chaining: "each segment uses the previous segment's last frame as the next segment's first image",
+    },
+    videoSegments,
+    transitionFrames,
+  });
 
   for (const [index, shot] of storyboard.entries()) {
+    const existingSegment = videoSegments.find((segment) => Number(segment.index) === index && segment.ossVideo?.url);
+    if (existingSegment) {
+      if (index < storyboard.length - 1) {
+        let existingFrame = transitionFrames.find((item) => Number(item.index) === index)?.frame;
+        if (!existingFrame?.url) {
+          await saveProgress(progress, onProgress, { statusDetail: `transition_frame_${index + 1}_extracting` });
+          existingFrame = await uploadLastFrameFromVideo(existingSegment.ossVideo?.url || existingSegment.result?.videoUrl, { kind: "xhs-transition-frame" });
+          transitionFrames.push({ index, frame: existingFrame });
+          await saveProgress(progress, onProgress, {
+            statusDetail: `transition_frame_${index + 1}_ready`,
+            transitionFrames,
+          });
+        }
+        currentImage = existingFrame;
+      }
+      continue;
+    }
     const videoInput = {
       model: input.videoModel,
       prompt: segmentPrompt(plan, shot, index),
@@ -115,6 +195,11 @@ export async function invokeXhsVideoChain(input = {}) {
       seed: input.seed ? Number(input.seed) + index : undefined,
       negativePrompt: plan.negativePrompt,
     };
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_generating`,
+      videoSegments,
+      transitionFrames,
+    });
     const videoResult = await withRetry(`xhs video segment ${index + 1}`, () => videoGenerationRunnable.invoke(videoInput));
     videoSegments.push({
       index,
@@ -123,19 +208,32 @@ export async function invokeXhsVideoChain(input = {}) {
       result: videoResult,
       ossVideo: videoResult.ossVideo,
     });
+    await saveProgress(progress, onProgress, {
+      statusDetail: `video_segment_${index + 1}_generated`,
+      videoSegments,
+      transitionFrames,
+    });
     if (index < storyboard.length - 1) {
+      await saveProgress(progress, onProgress, { statusDetail: `transition_frame_${index + 1}_extracting` });
       const nextFrame = await uploadLastFrameFromVideo(videoResult.ossVideo?.url || videoResult.videoUrl, { kind: "xhs-transition-frame" });
       transitionFrames.push({ index, frame: nextFrame });
       currentImage = nextFrame;
+      await saveProgress(progress, onProgress, {
+        statusDetail: `transition_frame_${index + 1}_ready`,
+        transitionFrames,
+      });
     }
   }
 
-  const finalVideo = await concatVideosToOss(videoSegments.map((segment) => segment.ossVideo?.url || segment.result.videoUrl), { kind: "xhs-final-video" });
+  let finalVideo = progress.ossVideo;
+  if (!finalVideo?.url) {
+    await saveProgress(progress, onProgress, { statusDetail: "final_video_concatenating" });
+    finalVideo = await concatVideosToOss(videoSegments.map((segment) => segment.ossVideo?.url || segment.result.videoUrl), { kind: "xhs-final-video" });
+  }
 
   return {
-    framework: "langchain-js",
-    workflow: "xhs_30s_video",
-    steps: ["hotword_or_keyword_planning", "storyboard", "character_design", "ai_image_generation", "chained_image_to_video_segments", "concat_final_video"],
+    ...progress,
+    statusDetail: "completed",
     keyword: plan.keyword,
     hook: plan.hook,
     plannerText,

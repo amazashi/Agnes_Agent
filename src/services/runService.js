@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { insertRun, updateRunDone, updateRunRunning, findRecentRuns, findRunByRequestId } from "../storage/runRepository.js";
+import { insertRun, updateRunDone, updateRunProgress, updateRunRunning, findRecentRuns, findRunByRequestId } from "../storage/runRepository.js";
 import { refreshRunAssets } from "./assetService.js";
 
 export function createPendingRun({ kind, request }) {
@@ -17,7 +17,12 @@ export function markRunSucceeded(requestId, response, startedAt) {
 }
 
 export function markRunFailed(requestId, error, startedAt = null) {
-  updateRunDone(requestId, { status: "failed", error: error.message || String(error), startedAt });
+  const existing = findRunByRequestId(requestId);
+  updateRunDone(requestId, { status: "failed", response: existing?.response || null, error: error.message || String(error), startedAt });
+}
+
+export function markRunProgress(requestId, response) {
+  updateRunProgress(requestId, { requestId, ...response });
 }
 
 export function getRun(requestId) {
@@ -29,6 +34,18 @@ export function listRuns(limit) {
 }
 
 export function runAsyncTask(requestId, task) {
+  setImmediate(async () => {
+    const startedAt = new Date().toISOString();
+    markRunRunning(requestId);
+    try {
+      markRunSucceeded(requestId, await task(), startedAt);
+    } catch (error) {
+      markRunFailed(requestId, error, startedAt);
+    }
+  });
+}
+
+export function resumeAsyncTask(requestId, task) {
   setImmediate(async () => {
     const startedAt = new Date().toISOString();
     markRunRunning(requestId);

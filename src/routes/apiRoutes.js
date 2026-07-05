@@ -2,7 +2,7 @@ import { sendJson } from "../http.js";
 import { createChatRequest, getChatRequest } from "../controllers/chatController.js";
 import { createImageRequest, getImageRequest } from "../controllers/imageController.js";
 import { createVideoRequest, getVideoRequest } from "../controllers/videoController.js";
-import { createXhsRequest, getXhsRequest } from "../controllers/xhsController.js";
+import { createXhsRequest, getXhsRequest, resumeXhsRequest } from "../controllers/xhsController.js";
 import { listRunRequests } from "../controllers/runController.js";
 import { uploadAssetRequest } from "../controllers/assetController.js";
 import { streamChatRequest } from "../controllers/chatStreamController.js";
@@ -30,6 +30,9 @@ export async function routeApi(req, res, url) {
 
   const xhsMatch = url.pathname.match(/^\/api\/xhs\/requests\/([^/]+)$/);
   if (req.method === "GET" && xhsMatch) return getXhsRequest(req, res, xhsMatch[1]);
+
+  const xhsResumeMatch = url.pathname.match(/^\/api\/xhs\/requests\/([^/]+)\/resume$/);
+  if (req.method === "POST" && xhsResumeMatch) return resumeXhsRequest(req, res, xhsResumeMatch[1]);
 
   if (req.method === "GET" && url.pathname === "/api/runs") return listRunRequests(req, res);
   return false;

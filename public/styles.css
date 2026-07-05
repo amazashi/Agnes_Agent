@@ -276,6 +276,43 @@ button {
   gap: 14px;
 }
 
+.resume-box {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 245, 207, 0.72);
+  box-shadow:
+    8px 10px 18px rgba(93, 89, 126, 0.12),
+    inset 6px 7px 14px rgba(255, 255, 255, 0.64),
+    inset -6px -7px 14px rgba(150, 118, 90, 0.1);
+}
+
+.resume-box span {
+  display: block;
+  margin-top: 4px;
+  color: #6d7788;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.resume-button {
+  flex: 0 0 auto;
+}
+
+.error-text {
+  padding: 12px 14px;
+  border-radius: 18px;
+  color: #7a3047;
+  font-weight: 800;
+  background: rgba(255, 220, 225, 0.72);
+  box-shadow:
+    inset 5px 6px 12px rgba(130, 65, 82, 0.12),
+    inset -6px -7px 12px rgba(255, 255, 255, 0.72);
+}
+
 .storyboard-list {
   display: grid;
   gap: 8px;

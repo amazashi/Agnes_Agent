@@ -150,9 +150,11 @@
             <label>Image Size<input name="imageSize" placeholder="768x1024" /></label>
             <label>Width<input name="width" placeholder="768" /></label>
             <label>Height<input name="height" placeholder="1152" /></label>
-            <label>Frames<input name="numFrames" placeholder="441" /></label>
-            <label>FPS<input name="frameRate" placeholder="15" /></label>
+            <label>Segments<input name="segmentCount" placeholder="5" /></label>
+            <label>Frames / Segment<input name="segmentFrames" placeholder="121" /></label>
+            <label>FPS<input name="frameRate" placeholder="20" /></label>
           </div>
+          <p class="form-note">默认 5 段，每段 121 帧、20fps，约 30.25 秒；每段会使用上一段最后一帧作为下一段第一帧。</p>
           <button type="submit">生成小红书 30s 视频链路</button>
         </form>
       </section>

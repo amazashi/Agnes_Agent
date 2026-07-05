@@ -10,7 +10,7 @@ export async function api(path, options = {}) {
 
 export function formJson(form) {
   const body = Object.fromEntries([...new FormData(form).entries()].map(([key, value]) => [key, String(value).trim()]));
-  for (const key of ["temperature", "topP", "maxTokens", "thinkingBudgetTokens", "width", "height", "numFrames", "frameRate", "seed", "numInferenceSteps"]) {
+  for (const key of ["temperature", "topP", "maxTokens", "thinkingBudgetTokens", "width", "height", "numFrames", "segmentFrames", "segmentCount", "frameRate", "seed", "numInferenceSteps"]) {
     if (body[key]) body[key] = Number(body[key]);
     else delete body[key];
   }

@@ -80,6 +80,14 @@ label {
   font-weight: 800;
 }
 
+.form-note {
+  margin: 8px 0 14px;
+  color: #6d7788;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
 .tabs {
   display: flex;
   gap: 10px;

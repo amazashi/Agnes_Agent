@@ -22,8 +22,9 @@ body {
   height: 100vh;
   padding: 10px;
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr) 360px;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.15fr) minmax(280px, 0.85fr);
   gap: 12px;
+  overflow: hidden;
 }
 
 .panel {
@@ -90,12 +91,13 @@ label {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin: 14px 0 18px;
 }
 
 .tab {
-  flex: 1;
+  flex: 1 1 84px;
   padding: 10px 12px;
 }
 
@@ -228,7 +230,8 @@ button {
   padding: 18px;
   border-radius: 24px;
   line-height: 1.7;
-  white-space: pre-wrap;
+  overflow: auto;
+  white-space: normal;
   background: rgba(255, 255, 255, 0.52);
   box-shadow:
     inset 8px 9px 18px rgba(111, 92, 130, 0.16),
@@ -237,7 +240,7 @@ button {
 
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -278,6 +281,7 @@ button {
 
 .resume-box {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
@@ -300,6 +304,7 @@ button {
 
 .resume-button {
   flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .error-text {
@@ -320,7 +325,7 @@ button {
 
 .storyboard-list article {
   display: grid;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: minmax(54px, 72px) minmax(0, 1fr);
   gap: 10px;
   padding: 10px 12px;
   border-radius: 18px;
@@ -337,6 +342,7 @@ button {
 pre {
   flex: 1;
   min-height: 0;
+  max-width: 100%;
   overflow: auto;
   white-space: pre-wrap;
   margin: 14px 0 0;

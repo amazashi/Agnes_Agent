@@ -75,6 +75,15 @@ function videoSucceeded(result) {
   return ["completed", "succeeded", "success"].includes(status) || Boolean(result?.remixed_from_video_id || result?.url || result?.video_url);
 }
 
+function videoFailed(segment) {
+  const status = String(segment?.status || segment?.result?.status || "").toLowerCase();
+  return ["failed", "error"].includes(status) || Boolean(segment?.result?.error);
+}
+
+function frameUsable(frame) {
+  return Boolean(frame?.url && /jpe?g/i.test(frame.contentType || frame.objectKey || "") && Number(frame.sizeBytes || 0) > 1024);
+}
+
 async function runVideoSegment({ index, shot, videoInput, existingSegment, onProgress, progress, videoSegments, transitionFrames }) {
   const segment = existingSegment || {
     index,
@@ -82,6 +91,14 @@ async function runVideoSegment({ index, shot, videoInput, existingSegment, onPro
     input: { ...videoInput, image: videoInput.imageObjectKey || videoInput.image },
     status: "creating",
   };
+
+  if (existingSegment && videoFailed(existingSegment) && !existingSegment.ossVideo?.url) {
+    segment.created = null;
+    segment.result = null;
+    segment.videoUrl = null;
+    segment.status = "retrying";
+    segment.input = { ...videoInput, image: videoInput.imageObjectKey || videoInput.image };
+  }
 
   if (!existingSegment) {
     videoSegments.push(segment);
@@ -264,6 +281,7 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
         const videoInput = {
           ...(existingSegment.input || {}),
           image: currentImage.url,
+          imageObjectKey: currentImage.objectKey,
         };
         await runVideoSegment({
           index,
@@ -278,10 +296,12 @@ export async function invokeXhsVideoChain(input = {}, context = {}) {
       }
       if (index < storyboard.length - 1) {
         let existingFrame = transitionFrames.find((item) => Number(item.index) === index)?.frame;
-        if (!existingFrame?.url) {
+        if (!frameUsable(existingFrame)) {
           await saveProgress(progress, onProgress, { statusDetail: `transition_frame_${index + 1}_extracting` });
           existingFrame = await uploadLastFrameFromVideo(existingSegment.ossVideo?.url || existingSegment.result?.videoUrl, { kind: "xhs-transition-frame" });
-          transitionFrames.push({ index, frame: existingFrame });
+          const oldIndex = transitionFrames.findIndex((item) => Number(item.index) === index);
+          if (oldIndex >= 0) transitionFrames.splice(oldIndex, 1, { index, frame: existingFrame });
+          else transitionFrames.push({ index, frame: existingFrame });
           await saveProgress(progress, onProgress, {
             statusDetail: `transition_frame_${index + 1}_ready`,
             transitionFrames,

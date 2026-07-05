@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -30,20 +30,34 @@ async function downloadBuffer(url) {
   return Buffer.from(await response.arrayBuffer());
 }
 
+async function extractFrame(videoFile, frameFile, mode) {
+  const seekArgs = mode === "last" ? ["-sseof", "-1"] : [];
+  await runFfmpeg([
+    "-y",
+    ...seekArgs,
+    "-i", videoFile,
+    "-frames:v", "1",
+    "-q:v", "2",
+    frameFile,
+  ]);
+  const frameInfo = await stat(frameFile).catch(() => null);
+  if (!frameInfo || frameInfo.size < 1024) throw new Error(`${mode} frame extraction produced an invalid image (${frameInfo?.size || 0} bytes)`);
+}
+
 export async function uploadLastFrameFromVideo(videoUrl, { kind = "xhs-frame" } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "agnes-frame-"));
   try {
     const videoFile = join(dir, "source.mp4");
+    const frameFile = join(dir, "last-frame.jpg");
     await writeFile(videoFile, await downloadBuffer(videoUrl));
-    const frame = await runFfmpeg([
-      "-sseof", "-0.1",
-      "-i", videoFile,
-      "-frames:v", "1",
-      "-f", "image2pipe",
-      "-vcodec", "png",
-      "pipe:1",
-    ]);
-    return uploadBufferAsset(frame, { kind, filename: "last-frame.png", contentType: "image/png", sourceUrl: videoUrl });
+    try {
+      await extractFrame(videoFile, frameFile, "last");
+    } catch {
+      await extractFrame(videoFile, frameFile, "first");
+    }
+    const frame = await readFile(frameFile);
+    if (frame.length < 1024) throw new Error(`last frame extraction produced an invalid image (${frame.length} bytes)`);
+    return uploadBufferAsset(frame, { kind, filename: "last-frame.jpg", contentType: "image/jpeg", sourceUrl: videoUrl });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

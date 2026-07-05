@@ -23,8 +23,8 @@ function validateVideoRequest(body) {
   if ((body.num_frames - 1) % 8 !== 0) {
     throw new Error("num_frames must satisfy 8n + 1, for example 121");
   }
-  if (!Number.isInteger(body.frame_rate) || body.frame_rate < 1 || body.frame_rate > 30) {
-    throw new Error("frame_rate must be an integer between 1 and 30");
+  if (!Number.isInteger(body.frame_rate) || body.frame_rate < 1 || body.frame_rate > 60) {
+    throw new Error("frame_rate must be an integer between 1 and 60");
   }
   if (body.num_inference_steps !== undefined && (!Number.isInteger(body.num_inference_steps) || body.num_inference_steps <= 0)) {
     throw new Error("num_inference_steps must be a positive integer");

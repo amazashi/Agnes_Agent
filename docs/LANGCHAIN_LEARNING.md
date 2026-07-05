@@ -149,7 +149,7 @@ Agnes Image 文档要求：
 - `width`、`height` 必须是正整数。
 - `num_frames` 必须是 `1-441` 的整数。
 - `num_frames` 必须满足 `8n + 1`，例如 `121`。
-- `frame_rate` 必须是 `1-30` 的整数。
+- `frame_rate` 必须是 `1-60` 的整数。
 - `num_inference_steps` 必须是正整数。
 - `seed` 必须是整数。
 

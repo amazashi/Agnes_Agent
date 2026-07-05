@@ -152,9 +152,9 @@
             <label>Height<input name="height" placeholder="1152" /></label>
             <label>Segments<input name="segmentCount" placeholder="5" /></label>
             <label>Frames / Segment<input name="segmentFrames" placeholder="121" /></label>
-            <label>FPS<input name="frameRate" placeholder="20" /></label>
+            <label>FPS<input name="frameRate" placeholder="20，可填 60" /></label>
           </div>
-          <p class="form-note">默认 5 段，每段 121 帧、20fps，约 30.25 秒；每段会使用上一段最后一帧作为下一段第一帧。</p>
+          <p class="form-note">默认 5 段，每段 121 帧、20fps，约 30.25 秒；如果要 60fps 接近 30 秒，可填 5 段、361 帧/段、60fps。每段会使用上一段最后一帧作为下一段第一帧。</p>
           <button type="submit">生成小红书 30s 视频链路</button>
         </form>
       </section>

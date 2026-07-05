@@ -154,6 +154,8 @@
 - 修复 XHS 过渡帧抽取问题：旧逻辑可能上传 0 字节 PNG，导致 Agnes 报 `cannot identify image file`。
 - XHS 过渡帧改为有效 JPG，并在抽帧结果过小时直接报错，不再上传坏图。
 - 前端结果区布局已调整，避免预览内容、按钮和原始 JSON 出现重叠。
+- 根据 Agnes Video V2.0 文档修正 `frame_rate` 校验范围：支持 `1-60`。
+- XHS 前端已提示 60fps 接近 30 秒的推荐参数：`5 段 * 361 frames / 60 fps = 30.08s`。
 - XHS 任务请求和最终响应写入 SQLite。
 
 核心文件：
@@ -214,6 +216,7 @@ npm run check
 - 已检查 XHS 中途等待视频模型返回的场景，并补充远端视频任务 checkpoint。
 - 已验证 `POST /api/xhs/requests/:requestId/resume` 可以把失败任务重新置为 running。
 - 已验证失败任务 `65f1b24b-2aab-4450-b5ca-877f22ef394d` 通过 resume 成功完成，最终视频已上传 OSS。
+- 已修正视频参数校验，允许 `frame_rate=60`。
 
 ## 当前 Git 状态
 
@@ -319,3 +322,4 @@ git push
 - 增加前端 XHS 失败任务继续处理按钮。
 - 修复 XHS 下一段图生视频无法识别过渡帧的问题。
 - 修复前端结果区样式碰撞。
+- 修正 Agnes Video `frame_rate` 支持范围为 `1-60`。

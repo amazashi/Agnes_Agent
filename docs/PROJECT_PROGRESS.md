@@ -16,6 +16,7 @@
 - 每次任务请求、进度 checkpoint、最终响应写入 SQLite。
 - 前端轮询任务状态，并预览文字、图片、视频结果。
 - XHS 30s 视频链路：关键词/热词 -> 分镜构思 -> 角色设定 -> 人物参考图 -> 封面图 -> 多段图生视频 -> 拼接最终视频。
+- XHS 卡片图链路：主题 -> AI 规划文案与样式 -> 后端 SVG 精准排版文字 -> 上传 OSS。
 
 ## 核心模块
 
@@ -65,6 +66,27 @@
 - `public/js/previewRenderer.js`
 - `public/styles.css`
 
+## XHS 卡片图链路现状
+
+已完成：
+
+- 新增 `xhs-card` 前端面板。
+- 左侧 tag 改为分组下拉结构，方便后续扩展更多功能。
+- 支持输入主题、目标人群、风格偏好，也支持手动覆盖主标题、副标题、按钮文案、页脚文案。
+- 文本模型先规划卡片 JSON，包括标题、字幕、按钮、页脚、配色和标题拆行。
+- 后端用 SVG 渲染最终图片，确保图片里的中文文字可控、清晰、不会被生图模型写错。
+- SVG 作为图片上传到 OSS，并把请求、规划结果、OSS 链接写入 SQLite。
+
+核心文件：
+
+- `src/langchain/prompts/xhsCardPrompt.js`
+- `src/langchain/chains/xhsCardChain.js`
+- `src/services/xhsCardService.js`
+- `src/controllers/xhsCardController.js`
+- `src/routes/apiRoutes.js`
+- `public/index.html`
+- `public/js/previewRenderer.js`
+
 ## XHS 链路现状
 
 已完成：
@@ -99,6 +121,8 @@
 - 前端 XHS 提示词编辑器新增人物参考提示词。
 - 修复 `public/index.html` 与 `public/js/previewRenderer.js` 乱码导致的结构风险。
 - OSS 签名刷新逻辑支持人物参考图。
+- 新增 XHS 卡片图功能，支持 AI 规划样式和 SVG 精准文字渲染。
+- 左侧 tag 改成分组下拉结构。
 
 ## 验证记录
 
@@ -110,6 +134,12 @@ node --check src/langchain/chains/xhsVideoChain.js
 node --check src/langchain/prompts/xhsVideoPrompt.js
 npm run check
 ```
+
+本次接口冒烟测试：
+
+- `POST /api/xhs-card/requests` 已通过。
+- 测试 requestId：`58958086-2d73-4820-a47b-e92f8a7ce8c8`
+- 已验证文本模型规划、SVG 渲染、OSS 上传、SQLite 入库、状态查询链路。
 
 ## 后续计划
 

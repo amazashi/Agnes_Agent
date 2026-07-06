@@ -10,6 +10,7 @@ bindSubmit("chat", "chat-form");
 bindSubmit("image", "image-form");
 bindSubmit("video", "video-form");
 bindSubmit("xhs", "xhs-form");
+bindSubmit("xhs-card", "xhs-card-form");
 startPolling();
 
 document.getElementById("refresh").addEventListener("click", () => refreshRuns().catch((error) => {

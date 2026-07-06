@@ -3,6 +3,7 @@ import { createChatRequest, getChatRequest } from "../controllers/chatController
 import { createImageRequest, getImageRequest } from "../controllers/imageController.js";
 import { createVideoRequest, getVideoRequest } from "../controllers/videoController.js";
 import { createXhsRequest, getXhsRequest, resumeXhsRequest } from "../controllers/xhsController.js";
+import { createXhsCardRequest, getXhsCardRequest } from "../controllers/xhsCardController.js";
 import { listRunRequests } from "../controllers/runController.js";
 import { uploadAssetRequest } from "../controllers/assetController.js";
 import { streamChatRequest } from "../controllers/chatStreamController.js";
@@ -17,6 +18,7 @@ export async function routeApi(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/image/requests") return createImageRequest(req, res);
   if (req.method === "POST" && url.pathname === "/api/video/requests") return createVideoRequest(req, res);
   if (req.method === "POST" && url.pathname === "/api/xhs/requests") return createXhsRequest(req, res);
+  if (req.method === "POST" && url.pathname === "/api/xhs-card/requests") return createXhsCardRequest(req, res);
   if (req.method === "POST" && url.pathname === "/api/assets/upload") return uploadAssetRequest(req, res);
 
   const chatMatch = url.pathname.match(/^\/api\/chat\/requests\/([^/]+)$/);
@@ -30,6 +32,9 @@ export async function routeApi(req, res, url) {
 
   const xhsMatch = url.pathname.match(/^\/api\/xhs\/requests\/([^/]+)$/);
   if (req.method === "GET" && xhsMatch) return getXhsRequest(req, res, xhsMatch[1]);
+
+  const xhsCardMatch = url.pathname.match(/^\/api\/xhs-card\/requests\/([^/]+)$/);
+  if (req.method === "GET" && xhsCardMatch) return getXhsCardRequest(req, res, xhsCardMatch[1]);
 
   const xhsResumeMatch = url.pathname.match(/^\/api\/xhs\/requests\/([^/]+)\/resume$/);
   if (req.method === "POST" && xhsResumeMatch) return resumeXhsRequest(req, res, xhsResumeMatch[1]);

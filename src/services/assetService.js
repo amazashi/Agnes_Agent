@@ -5,6 +5,7 @@ export function refreshRunAssets(run) {
   const response = { ...run.response };
   if (Array.isArray(response.ossImages)) response.ossImages = response.ossImages.map(refreshOssAssetUrl);
   if (Array.isArray(response.ossCharacterImages)) response.ossCharacterImages = response.ossCharacterImages.map(refreshOssAssetUrl);
+  if (response.ossImage) response.ossImage = refreshOssAssetUrl(response.ossImage);
   if (response.ossVideo) response.ossVideo = refreshOssAssetUrl(response.ossVideo);
   if (response.inputImage) response.inputImage = refreshOssAssetUrl(response.inputImage);
   if (Array.isArray(response.transitionFrames)) {

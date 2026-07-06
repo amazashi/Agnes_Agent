@@ -90,14 +90,31 @@ label {
 }
 
 .tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
   margin: 14px 0 18px;
 }
 
+.tab-group {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    inset 6px 7px 14px rgba(255, 255, 255, 0.62),
+    inset -6px -7px 14px rgba(125, 95, 128, 0.12);
+}
+
+.tab-group summary {
+  cursor: pointer;
+  color: #5c6677;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .tab {
-  flex: 1 1 84px;
+  width: 100%;
+  margin-top: 8px;
   padding: 10px 12px;
 }
 

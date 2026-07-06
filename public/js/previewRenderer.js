@@ -130,9 +130,28 @@ function renderXhs(run, response) {
   `;
 }
 
+function renderXhsCard(_run, response) {
+  const plan = response.plan || {};
+  const image = response.ossImage || response.ossImages?.[0];
+  return `
+    <div class="xhs-preview">
+      <section class="preview-block text-preview">
+        <h3>XHS Card Plan</h3>
+        <p><strong>Title:</strong> ${escapeHtml(plan.title || "")}</p>
+        <p><strong>Subtitle:</strong> ${escapeHtml(plan.subtitle || "")}</p>
+        <p><strong>Badge:</strong> ${escapeHtml(plan.badge || "")}</p>
+        <p><strong>Footer:</strong> ${escapeHtml(plan.footer || "")}</p>
+        <div class="meta">Stage: ${escapeHtml(response.statusDetail || "")}</div>
+      </section>
+      ${image ? renderImages([image], "xhs card image", "Card Image") : ""}
+    </div>
+  `;
+}
+
 export function renderAnswer(run) {
   const response = run.response || {};
   if (response.workflow === "xhs_30s_video") return renderXhs(run, response);
+  if (response.workflow === "xhs_card") return renderXhsCard(run, response);
   if (run.status === "pending" || run.status === "running") return "Task is still running.";
   if (run.status === "failed" && run.kind?.startsWith("xhs")) {
     return `${renderResumeAction(run)}<div class="error-text">${escapeHtml(run.errorMessage || "Task failed")}</div>`;

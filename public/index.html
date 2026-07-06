@@ -178,6 +178,19 @@
           <label>风格偏好<textarea name="style" rows="3">极简留白，黑色大标题，橙色按钮，知识卡片，有封面、有内容页、有结尾页</textarea></label>
           <div class="template-grid">
             <label>Chat Model<input name="model" placeholder="agnes-2.0-flash" /></label>
+            <label>Image Model
+              <select name="imageModel">
+                <option value="agnes-image-2.1-flash">agnes-image-2.1-flash</option>
+                <option value="agnes-image-2.0-flash">agnes-image-2.0-flash</option>
+              </select>
+            </label>
+            <label>Image Size<input name="imageSize" placeholder="768x1024" /></label>
+            <label>Response Format
+              <select name="responseFormat">
+                <option value="url">url</option>
+                <option value="b64_json">b64_json</option>
+              </select>
+            </label>
             <label>Width<input name="width" placeholder="1242" /></label>
             <label>Height<input name="height" placeholder="1660" /></label>
             <label>Max Cards<input name="maxCards" placeholder="8" /></label>
@@ -187,7 +200,7 @@
           <label>封面副标题<input name="subtitle" placeholder="可选。只覆盖封面，例如：HR 问你薪资怎么答？" /></label>
           <label>封面按钮文案<input name="badge" placeholder="可选。例如：🔥 满分回答模板来了" /></label>
           <label>封面页脚文案<input name="footer" placeholder="可选。例如：收藏备用 · 面试不慌" /></label>
-          <p class="form-note">这条链路会先让语言模型阅读长文案并规划多张卡片：封面图、内容图、结尾图。后端再用 SVG 精准渲染文字并上传 OSS，因此图片中文字可控。</p>
+          <p class="form-note">这条链路会先让语言模型阅读长文案并规划多张卡片：封面图、内容图、结尾图。随后每张卡都会单独调用图片模型生成，并上传 OSS。</p>
           <button type="submit">Generate XHS Card Set</button>
         </form>
       </section>

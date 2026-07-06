@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { createChatModel } from "../models/agnesChatModel.js";
+import { imageGenerationRunnable } from "./imageRunnable.js";
 import { buildXhsCardPlannerPrompt, fallbackXhsCardPlan } from "../prompts/xhsCardPrompt.js";
-import { uploadBufferAsset } from "../../oss/bitifulClient.js";
 
 function extractJson(text) {
   const raw = String(text || "").trim();
@@ -20,15 +20,6 @@ function chars(value) {
 function clampText(value, fallback, maxLength) {
   const text = String(value || fallback || "").trim();
   return chars(text).slice(0, maxLength).join("");
-}
-
-function splitTitle(title, titleLines) {
-  const lines = Array.isArray(titleLines) ? titleLines.map((line) => clampText(line, "", 12)).filter(Boolean) : [];
-  if (lines.length) return lines.slice(0, 3);
-  const list = chars(title);
-  if (list.length <= 4) return [title];
-  if (list.length <= 8) return [list.slice(0, 4).join(""), list.slice(4).join("")];
-  return [list.slice(0, 4).join(""), list.slice(4, 8).join(""), list.slice(8, 12).join("")];
 }
 
 function normalizeTheme(theme = {}, fallbackTheme = {}) {
@@ -55,7 +46,6 @@ function normalizeCard(card = {}, index, input, theme) {
     section: clampText(card.section, title, 12),
     headline: clampText(card.headline, card.subtitle || "", 24),
     bullets: (Array.isArray(card.bullets) ? card.bullets : []).map((item) => clampText(item, "", 28)).filter(Boolean).slice(0, 4),
-    titleLines: splitTitle(title, card.titleLines),
     theme: normalizeTheme(card.theme, theme),
   };
 }
@@ -78,103 +68,56 @@ function normalizePlan(plan, input) {
   };
 }
 
-function escapeXml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
-    "'": "&apos;",
-  }[char]));
+function quotedLines(lines) {
+  return lines.filter(Boolean).map((line) => `"${line}"`).join(", ");
 }
 
-function wrapText(text, maxChars, maxLines = 4) {
-  const list = chars(text);
-  const lines = [];
-  for (let index = 0; index < list.length && lines.length < maxLines; index += maxChars) {
-    lines.push(list.slice(index, index + maxChars).join(""));
+function cardTextSpec(card) {
+  if (card.type === "content") {
+    return [
+      `Section title: "${card.section}"`,
+      card.headline ? `Headline: "${card.headline}"` : "",
+      card.bullets.length ? `Bullet list: ${quotedLines(card.bullets)}` : "",
+      card.footer ? `Footer: "${card.footer}"` : "",
+    ].filter(Boolean).join("\n");
   }
-  return lines;
+  if (card.type === "ending") {
+    return [
+      `Large ending title: "${card.title}"`,
+      card.subtitle ? `Subtitle: "${card.subtitle}"` : "",
+      card.badge ? `Button text: "${card.badge}"` : "",
+      card.footer ? `Footer: "${card.footer}"` : "",
+    ].filter(Boolean).join("\n");
+  }
+  return [
+    `Large cover title: "${card.title}"`,
+    card.subtitle ? `Subtitle: "${card.subtitle}"` : "",
+    card.badge ? `Button text: "${card.badge}"` : "",
+    card.footer ? `Footer: "${card.footer}"` : "",
+  ].filter(Boolean).join("\n");
 }
 
-function textBlock({ lines, x, y, size, lineHeight, weight = 800, fill, anchor = "middle" }) {
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Arial, 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif" font-size="${size}" font-weight="${weight}" fill="${escapeXml(fill)}">${lines.map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`).join("")}</text>`;
-}
-
-function roundedCard({ x, y, width, height, radius = 34, fill = "rgba(255,255,255,0.64)", stroke = "" }) {
-  return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${radius}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="3"` : ""}/>`;
-}
-
-function renderBadge(card, width, y) {
-  const badgeWidth = Math.min(760, 280 + chars(card.badge).length * 34);
-  const badgeX = (width - badgeWidth) / 2;
+function imagePromptForCard(card, plan, input) {
+  const theme = card.theme || plan.theme;
   return `
-  <rect x="${badgeX}" y="${y - 62}" width="${badgeWidth}" height="108" rx="54" fill="url(#badgeGradient)"/>
-  ${textBlock({ lines: [card.badge], x: width / 2, y: y + 14, size: 50, weight: 900, fill: card.theme.accentText })}`;
-}
+Create a vertical Xiaohongshu card image with accurate Chinese typography.
 
-function renderBase({ width, height, theme }) {
-  const paperMargin = 56;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#e9d9bd" flood-opacity="0.42"/>
-    </filter>
-    <linearGradient id="badgeGradient" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="${escapeXml(theme.accent)}"/>
-      <stop offset="1" stop-color="#e94720"/>
-    </linearGradient>
-  </defs>
-  <rect width="${width}" height="${height}" fill="${escapeXml(theme.background)}"/>
-  <rect x="${paperMargin}" y="${paperMargin}" width="${width - paperMargin * 2}" height="${height - paperMargin * 2}" rx="0" fill="${escapeXml(theme.paper)}" filter="url(#softShadow)"/>`;
-}
+Card ${card.index + 1} of ${plan.cards.length}.
+Card type: ${card.type}.
+Topic: ${plan.topic}.
 
-function renderCover(card, width, height) {
-  const longestTitleLine = Math.max(...card.titleLines.map((line) => chars(line).length), 1);
-  const titleSize = card.titleLines.length >= 3 ? 150 : (longestTitleLine > 9 ? 166 : 206);
-  const titleStartY = card.titleLines.length >= 3 ? 500 : 600;
-  const titleGap = card.titleLines.length >= 3 ? 166 : (longestTitleLine > 9 ? 178 : 210);
-  return `${renderBase({ width, height, theme: card.theme })}
-  ${textBlock({ lines: card.titleLines, x: width / 2, y: titleStartY, size: titleSize, lineHeight: titleGap, weight: 900, fill: card.theme.primaryText })}
-  ${textBlock({ lines: wrapText(card.subtitle, 14, 2), x: width / 2, y: 1080, size: 72, lineHeight: 86, weight: 900, fill: card.theme.mutedText })}
-  ${renderBadge(card, width, 1260)}
-  ${textBlock({ lines: [card.footer], x: width - 116, y: height - 112, size: 40, lineHeight: 46, weight: 900, fill: card.theme.mutedText, anchor: "end" })}
-</svg>`;
-}
+Required visible text, copy exactly:
+${cardTextSpec(card)}
 
-function renderContent(card, width, height) {
-  const bullets = card.bullets.length ? card.bullets : wrapText(card.headline || card.title, 18, 3);
-  return `${renderBase({ width, height, theme: card.theme })}
-  <rect x="106" y="132" width="18" height="86" rx="9" fill="${escapeXml(card.theme.accent)}"/>
-  ${textBlock({ lines: [card.section], x: 150, y: 198, size: 72, lineHeight: 82, weight: 900, fill: card.theme.primaryText, anchor: "start" })}
-  ${textBlock({ lines: wrapText(card.headline, 15, 2), x: 150, y: 330, size: 54, lineHeight: 68, weight: 900, fill: card.theme.mutedText, anchor: "start" })}
-  ${bullets.map((bullet, index) => {
-    const y = 520 + index * 220;
-    return `
-  ${roundedCard({ x: 126, y: y - 82, width: width - 252, height: 158, fill: "#fff8ef", stroke: "#f4dfc2" })}
-  <circle cx="178" cy="${y - 4}" r="18" fill="${escapeXml(card.theme.accent)}"/>
-  ${textBlock({ lines: wrapText(bullet, 20, 2), x: 224, y: y - 16, size: 46, lineHeight: 58, weight: 900, fill: card.theme.primaryText, anchor: "start" })}`;
-  }).join("")}
-  ${textBlock({ lines: [card.footer], x: width - 116, y: height - 112, size: 38, lineHeight: 44, weight: 900, fill: card.theme.mutedText, anchor: "end" })}
-</svg>`;
-}
-
-function renderEnding(card, width, height) {
-  return `${renderBase({ width, height, theme: card.theme })}
-  ${textBlock({ lines: splitTitle(card.title, card.titleLines), x: width / 2, y: 560, size: 174, lineHeight: 188, weight: 900, fill: card.theme.primaryText })}
-  ${textBlock({ lines: wrapText(card.subtitle, 13, 3), x: width / 2, y: 980, size: 62, lineHeight: 76, weight: 900, fill: card.theme.mutedText })}
-  ${renderBadge(card, width, 1235)}
-  ${textBlock({ lines: [card.footer], x: width / 2, y: height - 118, size: 42, lineHeight: 48, weight: 900, fill: card.theme.mutedText })}
-</svg>`;
-}
-
-function renderCardSvg(card, input = {}) {
-  const width = Number(input.width || 1242);
-  const height = Number(input.height || 1660);
-  if (card.type === "content") return renderContent(card, width, height);
-  if (card.type === "ending") return renderEnding(card, width, height);
-  return renderCover(card, width, height);
+Visual style:
+- ${input.style || "minimal white space, bold black Chinese text, orange rounded button, clean knowledge-card layout"}
+- Background color ${theme.background}, inner paper color ${theme.paper}.
+- Primary text color ${theme.primaryText}, muted text color ${theme.mutedText}, accent button color ${theme.accent}.
+- Vertical poster layout, 1242x1660 ratio, clean margins, strong hierarchy.
+- Use large readable Chinese fonts.
+- Do not add any extra words, random letters, English text, watermarks, logos, QR codes, signatures, or UI chrome.
+- Preserve all Chinese characters exactly as provided.
+`.trim();
 }
 
 export async function invokeXhsCardChain(input = {}, context = {}) {
@@ -182,6 +125,7 @@ export async function invokeXhsCardChain(input = {}, context = {}) {
   const progress = {
     framework: "langchain-js",
     workflow: "xhs_card",
+    renderMode: "image_model",
     statusDetail: "planning",
     request: input,
   };
@@ -203,21 +147,32 @@ export async function invokeXhsCardChain(input = {}, context = {}) {
     plan = normalizePlan(plan, input);
   }
 
-  Object.assign(progress, { statusDetail: "rendering", plannerText, plan });
+  Object.assign(progress, { statusDetail: "planned", plannerText, plan });
   if (onProgress) await onProgress(progress);
 
-  const renderedCards = [];
+  const imageInputs = [];
+  const imageResults = [];
   const ossImages = [];
   for (const card of plan.cards) {
-    const svg = renderCardSvg(card, input);
-    const ossImage = await uploadBufferAsset(Buffer.from(svg, "utf8"), {
-      kind: "xhs-card",
-      filename: `xhs-card-${String(card.index + 1).padStart(2, "0")}.svg`,
-      contentType: "image/svg+xml",
-    });
-    renderedCards.push({ ...card, svg, ossImage });
-    ossImages.push(ossImage);
-    Object.assign(progress, { statusDetail: `rendered_${card.index + 1}_of_${plan.cards.length}`, renderedCards, ossImages });
+    const imageInput = {
+      provider: "agnes",
+      model: input.imageModel,
+      prompt: imagePromptForCard(card, plan, input),
+      size: input.imageSize || input.size || "768x1024",
+      responseFormat: input.responseFormat || "url",
+    };
+    imageInputs.push({ cardIndex: card.index, cardType: card.type, ...imageInput });
+    Object.assign(progress, { statusDetail: `image_${card.index + 1}_of_${plan.cards.length}_generating`, imageInputs, imageResults, ossImages });
+    if (onProgress) await onProgress(progress);
+
+    const imageResult = await imageGenerationRunnable.invoke(imageInput);
+    imageResults.push({ cardIndex: card.index, cardType: card.type, card, imageResult });
+    ossImages.push(...(imageResult.ossImages || []).map((image) => ({
+      ...image,
+      cardIndex: card.index,
+      cardType: card.type,
+    })));
+    Object.assign(progress, { statusDetail: `image_${card.index + 1}_of_${plan.cards.length}_generated`, imageInputs, imageResults, ossImages });
     if (onProgress) await onProgress(progress);
   }
 
@@ -225,7 +180,8 @@ export async function invokeXhsCardChain(input = {}, context = {}) {
     ...progress,
     statusDetail: "completed",
     plan,
-    renderedCards,
+    imageInputs,
+    imageResults,
     ossImage: ossImages[0] || null,
     ossImages,
   };

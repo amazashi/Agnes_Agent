@@ -172,21 +172,23 @@
         </form>
 
         <form id="xhs-card-form" class="task-form" data-panel="xhs-card">
-          <label>主题<input name="topic" value="面试必问" placeholder="例如：面试必问、AI副业、职场沟通" /></label>
+          <label>长文案 / 文件内容<textarea name="sourceText" rows="10" placeholder="把面试题、回答思路、错误回答、正确回答等整段内容直接粘贴到这里。AI 会决定生成几张图、封面图是什么、内容图怎么拆、结尾图怎么收束。"></textarea></label>
+          <label>主题<input name="topic" value="面试必问" placeholder="可选。例如：薪资期望怎么答、AI副业、职场沟通" /></label>
           <label>目标人群<input name="audience" value="正在准备面试的职场新人" /></label>
-          <label>风格偏好<textarea name="style" rows="3">极简留白，中心黑色超大标题，底部橙色圆角按钮，适合收藏</textarea></label>
+          <label>风格偏好<textarea name="style" rows="3">极简留白，黑色大标题，橙色按钮，知识卡片，有封面、有内容页、有结尾页</textarea></label>
           <div class="template-grid">
             <label>Chat Model<input name="model" placeholder="agnes-2.0-flash" /></label>
             <label>Width<input name="width" placeholder="1242" /></label>
             <label>Height<input name="height" placeholder="1660" /></label>
+            <label>Max Cards<input name="maxCards" placeholder="8" /></label>
             <label>Temperature<input name="temperature" placeholder="0.35" /></label>
           </div>
-          <label>主标题<input name="title" placeholder="可选。留空则由 AI 规划，例如：面试必问" /></label>
-          <label>副标题<input name="subtitle" placeholder="可选。例如：为什么想加入我们公司？" /></label>
-          <label>按钮文案<input name="badge" placeholder="可选。例如：🔥 满分回答模板来了" /></label>
-          <label>页脚文案<input name="footer" placeholder="可选。例如：收藏备用 · 面试不慌" /></label>
-          <p class="form-note">这条链路会先让文本模型规划卡片文案和配色，再由后端 SVG 精准渲染文字并上传 OSS，因此图片中文字可控。</p>
-          <button type="submit">Generate XHS Card</button>
+          <label>封面主标题<input name="title" placeholder="可选。只覆盖封面，例如：薪资期望" /></label>
+          <label>封面副标题<input name="subtitle" placeholder="可选。只覆盖封面，例如：HR 问你薪资怎么答？" /></label>
+          <label>封面按钮文案<input name="badge" placeholder="可选。例如：🔥 满分回答模板来了" /></label>
+          <label>封面页脚文案<input name="footer" placeholder="可选。例如：收藏备用 · 面试不慌" /></label>
+          <p class="form-note">这条链路会先让语言模型阅读长文案并规划多张卡片：封面图、内容图、结尾图。后端再用 SVG 精准渲染文字并上传 OSS，因此图片中文字可控。</p>
+          <button type="submit">Generate XHS Card Set</button>
         </form>
       </section>
 

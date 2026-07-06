@@ -132,18 +132,32 @@ function renderXhs(run, response) {
 
 function renderXhsCard(_run, response) {
   const plan = response.plan || {};
-  const image = response.ossImage || response.ossImages?.[0];
+  const cards = Array.isArray(plan.cards) ? plan.cards : [];
+  const images = response.ossImages || (response.ossImage ? [response.ossImage] : []);
   return `
     <div class="xhs-preview">
       <section class="preview-block text-preview">
-        <h3>XHS Card Plan</h3>
-        <p><strong>Title:</strong> ${escapeHtml(plan.title || "")}</p>
-        <p><strong>Subtitle:</strong> ${escapeHtml(plan.subtitle || "")}</p>
-        <p><strong>Badge:</strong> ${escapeHtml(plan.badge || "")}</p>
-        <p><strong>Footer:</strong> ${escapeHtml(plan.footer || "")}</p>
+        <h3>XHS Card Set Plan</h3>
+        <p><strong>Topic:</strong> ${escapeHtml(plan.topic || "")}</p>
+        <p><strong>Summary:</strong> ${escapeHtml(plan.summary || "")}</p>
+        <p><strong>Cards:</strong> ${escapeHtml(String(cards.length || images.length || 0))}</p>
         <div class="meta">Stage: ${escapeHtml(response.statusDetail || "")}</div>
       </section>
-      ${image ? renderImages([image], "xhs card image", "Card Image") : ""}
+      ${cards.length ? `
+        <section class="preview-block">
+          <h3>Card Outline</h3>
+          <div class="storyboard-list">
+            ${cards.map((card, index) => `
+              <article>
+                <strong>${escapeHtml(`${index + 1}. ${card.type || ""}`)}</strong>
+                <span>${escapeHtml(card.title || card.section || "")}</span>
+                <small>${escapeHtml(card.subtitle || card.headline || "")}</small>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      ` : ""}
+      ${images.length ? renderImages(images, "xhs card image", "Card Images") : ""}
     </div>
   `;
 }
